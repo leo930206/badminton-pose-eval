@@ -400,10 +400,13 @@ body {
 
 /* 手機專用元素（桌機隱藏） */
 .mobile-only { display: none; }
+/* 手機版短標題（預設隱藏，手機才顯示） */
+.title-short { display: none; }
 
-/* ── iPad（601px–1024px）── */
-@media (min-width: 601px) and (max-width: 1024px) {
+/* ── 觸控裝置（iPad / 平板，寬 ≥ 601px）── */
+@media (pointer: coarse) and (min-width: 601px) {
   .mobile-only { display: inline-flex; }
+  body { zoom: 1.5625; }     /* 1.25 × 1.25，在桌機 1.25x 基礎上再放大一倍 */
 }
 
 /* ── Footer ── */
@@ -425,6 +428,9 @@ body {
   .hdr-center { flex: none; text-align: center; padding-bottom: 6px; }
   .hdr-center h1 { font-size: 17px; }
   .hdr-center p  { font-size: 11px; }
+  /* 手機版：換用短標題 */
+  .title-full  { display: none; }
+  .title-short { display: block; }
   .hdr-right {
     flex: none;
     flex-direction: row;
@@ -485,7 +491,8 @@ body {
 <header class="site-header">
   <div class="hdr-spacer"></div>
   <div class="hdr-center">
-    <h1>基於電腦視覺之羽球動作辨識與評估系統</h1>
+    <h1 class="title-full">基於電腦視覺之羽球動作辨識與評估系統</h1>
+    <h1 class="title-short">基於電腦視覺之羽球動作評估系統</h1>
     <p>官裕宸 ｜ 成大不分系畢業專題 ｜ CCEP</p>
   </div>
   <div class="hdr-right">

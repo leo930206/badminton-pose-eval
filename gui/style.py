@@ -14,7 +14,7 @@ QWidget {
     background-color: #f5f5f7;
     color: #1d1d1f;
     font-family: "Segoe UI", "Microsoft JhengHei UI", Arial, sans-serif;
-    font-size: 13px;
+    font-size: 16px;
 }
 
 /* ── 普通按鈕（白底灰框） ── */
@@ -80,7 +80,7 @@ QLabel#video_label {
 
 /* ── 區塊小標題（LIVE LOG / 整場報告） ── */
 QLabel#lbl_section {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     color: #6e6e73;
     padding: 6px 0px 2px 0px;
@@ -89,7 +89,7 @@ QLabel#lbl_section {
 /* ── 狀態文字 ── */
 QLabel#lbl_status {
     color: #6e6e73;
-    font-size: 12px;
+    font-size: 15px;
 }
 
 /* ── 文字框（即時紀錄 & 整場報告） ── */
@@ -128,13 +128,13 @@ QFrame#stats_card {
 /* ── 卡片內 Key（左側灰色說明文字） ── */
 QLabel#stat_key {
     color: #6e6e73;
-    font-size: 12px;
+    font-size: 15px;
 }
 
 /* ── 卡片內 Value（右側數值，粗體） ── */
 QLabel#stat_val {
     color: #1d1d1f;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 600;
 }
 
@@ -144,9 +144,9 @@ QLabel#stat_count {
     border: 1px solid #e5e5ea;
     border-radius: 6px;
     padding: 4px 2px;
-    font-size: 11px;
+    font-size: 14px;
     color: #1d1d1f;
-    min-width: 44px;
+    min-width: 52px;
 }
 
 /* ── 捲動條（細條風格） ── */

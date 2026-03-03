@@ -50,15 +50,21 @@ class _VideoLabel(QLabel):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # 同步所有子 overlay 的大小（讓遮罩永遠填滿影片框）
         for child in self.children():
-            if isinstance(child, QWidget):
+            if not isinstance(child, QWidget):
+                continue
+            if isinstance(child, _HitBanner):
+                # 橫幅固定在底部
+                bh = _HitBanner.BANNER_H
+                child.setGeometry(0, self.height() - bh, self.width(), bh)
+            else:
                 child.setGeometry(self.rect())
 
 
-class _HitOverlay(QWidget):
-    """擊球暫停提示遮罩（疊加在影片上方，點擊後繼續分析）。"""
+class _HitBanner(QWidget):
+    """底部橫幅式擊球提示（影片畫面不變暗，只在底部出現一條橫幅）。"""
 
+    BANNER_H = 90           # 橫幅固定高度（px）
     resume_requested = pyqtSignal()
 
     _ACTION_MAP = {
@@ -72,70 +78,60 @@ class _HitOverlay(QWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
         self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setObjectName("hit_banner")
         self.setStyleSheet("""
-            QWidget#hit_overlay {
-                background-color: rgba(0, 0, 0, 120);
-                border-radius: 12px;
+            QWidget#hit_banner {
+                background-color: rgba(0, 0, 0, 185);
+                border-radius: 0px 0px 10px 10px;
             }
         """)
-        self.setObjectName("hit_overlay")
 
         layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(10)
-        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setContentsMargins(18, 9, 18, 10)
+        layout.setSpacing(3)
 
+        row1 = QHBoxLayout()
         self.lbl_action = QLabel()
-        self.lbl_action.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_action.setStyleSheet(
-            "color: white; font-size: 20px; font-weight: 700; background: transparent;"
+            "color: white; font-size: 16px; font-weight: 700; background: transparent;"
         )
-
         self.lbl_score = QLabel()
-        self.lbl_score.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_score.setStyleSheet(
             "color: #7ee787; font-size: 14px; background: transparent;"
         )
+        row1.addWidget(self.lbl_action)
+        row1.addStretch()
+        row1.addWidget(self.lbl_score)
 
         self.lbl_advice = QLabel()
-        self.lbl_advice.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_advice.setWordWrap(True)
         self.lbl_advice.setStyleSheet(
             "color: #f8c555; font-size: 13px; background: transparent;"
         )
 
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: rgba(255,255,255,80); background: rgba(255,255,255,80);")
-
-        self.lbl_hint = QLabel("點擊任意處繼續")
-        self.lbl_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_hint = QLabel("▶  點擊此處繼續")
         self.lbl_hint.setStyleSheet(
-            "color: rgba(255,255,255,150); font-size: 12px; font-style: italic; background: transparent;"
+            "color: rgba(255,255,255,160); font-size: 12px;"
+            " font-style: italic; background: transparent;"
         )
 
-        layout.addWidget(self.lbl_action)
-        layout.addWidget(self.lbl_score)
+        layout.addLayout(row1)
         layout.addWidget(self.lbl_advice)
-        layout.addWidget(sep)
         layout.addWidget(self.lbl_hint)
 
         self.hide()
 
     def show_hit(self, action: str, dtw_score, advice: list):
         self.lbl_action.setText(self._ACTION_MAP.get(action, action))
-        score_str = (
-            f"DTW 相似度：{dtw_score:.0f}%"
-            if dtw_score is not None
-            else "DTW 相似度：N/A（尚無模板）"
+        self.lbl_score.setText(
+            f"DTW {dtw_score:.0f}%" if dtw_score is not None else "DTW N/A"
         )
-        self.lbl_score.setText(score_str)
         self.lbl_advice.setText(
-            "\n".join(f"• {a}" for a in advice[:3]) if advice else "（無具體建議）"
+            "    ".join(f"• {a}" for a in advice[:2]) if advice else "（無具體建議）"
         )
-        # 定位為覆蓋整個父元件
         if self.parentWidget():
-            self.setGeometry(self.parentWidget().rect())
+            p = self.parentWidget()
+            self.setGeometry(0, p.height() - self.BANNER_H, p.width(), self.BANNER_H)
         self.raise_()
         self.show()
 
@@ -248,9 +244,9 @@ class MainWindow(QMainWindow):
         self.video_label.setSizePolicy(sp)
         left_layout.addWidget(self.video_label, stretch=1)
 
-        # 擊球暫停遮罩（疊加在影片上，不加入 layout，由 _VideoLabel.resizeEvent 同步大小）
-        self.hit_overlay = _HitOverlay(self.video_label)
-        self.hit_overlay.resume_requested.connect(self._on_resume)
+        # 擊球底部橫幅（疊加在影片底部，不加入 layout）
+        self.hit_banner = _HitBanner(self.video_label)
+        self.hit_banner.resume_requested.connect(self._on_resume)
 
         # 時間軸 slider
         self.timeline = QSlider(Qt.Orientation.Horizontal)
@@ -268,7 +264,7 @@ class MainWindow(QMainWindow):
         self.lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_time.setObjectName("lbl_time")
         self.lbl_time.setFixedHeight(16)
-        self.lbl_time.setStyleSheet("font-size: 11px; color: #8c959f;")
+        self.lbl_time.setStyleSheet("font-size: 14px; color: #8c959f;")
         left_layout.addWidget(self.lbl_time)
 
         splitter.addWidget(left_widget)
@@ -343,8 +339,8 @@ class MainWindow(QMainWindow):
 
         self.live_log = QTextEdit()
         self.live_log.setReadOnly(True)
-        self.live_log.setFont(QFont("Courier New", 9))
-        self.live_log.setFixedHeight(150)
+        self.live_log.setFont(QFont("Courier New", 11))
+        self.live_log.setFixedHeight(160)
         right_layout.addWidget(self.live_log)
 
         separator = QFrame()
@@ -365,7 +361,7 @@ class MainWindow(QMainWindow):
 
         self.report_box = QTextEdit()
         self.report_box.setReadOnly(True)
-        self.report_box.setFont(QFont("Courier New", 9))
+        self.report_box.setFont(QFont("Courier New", 11))
         self.report_box.setPlaceholderText("分析完成後，完整報告會顯示在這裡。")
         right_layout.addWidget(self.report_box, stretch=1)
 
@@ -384,7 +380,8 @@ class MainWindow(QMainWindow):
         )
         if path:
             self._video_path = path
-            self.lbl_status.setText(f"已選擇：{os.path.basename(path)}")
+            filename = os.path.basename(path)
+            self.lbl_status.setText(f"已選擇：{filename}")
             self.btn_start.setEnabled(True)
             self.report_box.clear()
             self.live_log.clear()
@@ -393,6 +390,9 @@ class MainWindow(QMainWindow):
             self.timeline.setEnabled(False)
             self.lbl_time.setText("00:00 / 00:00")
             self._close_scrub_cap()
+            # 影片區顯示已選擇的影片名稱
+            self.video_label.clear()
+            self.video_label.setText(f"📁  {filename}\n\n請按「開始分析」開始")
 
     def _on_start(self):
         if not self._video_path:
@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
         )
         self._worker.frame_ready.connect(self._on_frame)
         self._worker.action_found.connect(self._on_action)
-        self._worker.action_found.connect(self._on_action_show_overlay)
+        self._worker.action_found.connect(self._on_action_show_banner)
         self._worker.stats_updated.connect(self._on_stats)
         self._worker.progress.connect(self._on_progress)
         self._worker.frame_progress.connect(self._on_frame_progress)
@@ -450,7 +450,7 @@ class MainWindow(QMainWindow):
     def _on_stop(self):
         if self._worker:
             self._worker.stop()
-        self.hit_overlay.hide()
+        self.hit_banner.hide()
         self.lbl_status.setText("已停止")
         self._reset_buttons()
 
@@ -490,10 +490,10 @@ class MainWindow(QMainWindow):
         line = f"[{ts}] {action:<6} {stars}  {score_str:<6}  {advice_str}"
         self.live_log.append(line)
 
-    def _on_action_show_overlay(self, action: str, dtw_score, advice: list, ts_ms: int):
-        """擊球瞬間：若已勾選「擊球暫停」，顯示遮罩等待使用者繼續。"""
+    def _on_action_show_banner(self, action: str, dtw_score, advice: list, ts_ms: int):
+        """擊球瞬間：若已勾選「擊球暫停」，顯示底部橫幅等待使用者繼續。"""
         if self._pause_on_action:
-            self.hit_overlay.show_hit(action, dtw_score, advice)
+            self.hit_banner.show_hit(action, dtw_score, advice)
 
     def _on_resume(self):
         """使用者點擊遮罩後，恢復分析執行緒。"""
