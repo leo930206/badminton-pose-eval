@@ -1400,14 +1400,16 @@ function moveSection(id, dir) {
 // 資料載入（data.json → localStorage fallback）
 // ════════════════════════════════════════════════════
 async function loadData() {
-  // 不論 file:// 或 https://，localStorage 已有資料就跳過（不覆蓋）
-  // 新裝置第一次開啟（localStorage 空的）才從 data.json 載入
-  var lt = JSON.parse(localStorage.getItem(S_TODOS) || '[]');
-  var ll = JSON.parse(localStorage.getItem(S_LINKS) || '[]');
-  if (lt.length > 0 || ll.length > 0) return;
-  // localStorage 是空的 → 繼續往下嘗試讀 data.json
+  // file:// 模式（本機開發）：localStorage 有資料就不覆蓋
+  if (location.protocol === 'file:') {
+    var lt = JSON.parse(localStorage.getItem(S_TODOS) || '[]');
+    var ll = JSON.parse(localStorage.getItem(S_LINKS) || '[]');
+    if (lt.length > 0 || ll.length > 0) return;
+  }
+  // https:// 模式（GitHub Pages）：每次都從 GitHub 抓最新，強制跳過 CDN 快取
   try {
-    var resp = await fetch('./data.json');
+    var url  = './data.json?t=' + Date.now();
+    var resp = await fetch(url, { cache: 'no-store' });
     if (resp.ok) {
       var d = await resp.json();
       if (Array.isArray(d.todos))
