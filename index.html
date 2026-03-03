@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>1142 不分系專題 進度管理工具</title>
+<title>專題進度管理工具</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏸%3C/text%3E%3C/svg%3E">
 <style>
 :root {
@@ -28,6 +28,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 14px; line-height: 1.5;
   min-height: 100vh;
+  zoom: 1.25;
 }
 
 /* ── Header ── */
@@ -370,8 +371,40 @@ body {
 }
 .note-area:focus { background: #fffef5; }
 
+/* ── 筆記子欄位 ── */
+.subnote-item {
+  border-top: 1px solid var(--border2);
+  overflow: hidden;
+}
+.subnote-item:first-child { border-top: none; }
+.subnote-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; cursor: pointer;
+  background: var(--card);
+}
+.subnote-head:hover { background: #f0f3f6; }
+.subnote-name { font-size: 12px; font-weight: 600; color: var(--text2); flex: 1; }
+.subnote-del { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 12px; padding: 2px 5px; border-radius: 4px; }
+.subnote-del:hover { background: #ffd7d5; color: var(--red); }
+.subnote-chevron { color: var(--text3); font-size: 10px; transition: transform .18s; }
+.subnote-item.expanded .subnote-chevron { transform: rotate(180deg); }
+.subnote-body { display: none; }
+.subnote-item.expanded .subnote-body { display: block; }
+.add-subnote-btn {
+  display: block; width: 100%; padding: 6px 12px;
+  border: none; border-top: 1px dashed var(--border2);
+  background: transparent; color: var(--accent);
+  font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.add-subnote-btn:hover { background: #ddf4ff; }
+
 /* 手機專用元素（桌機隱藏） */
 .mobile-only { display: none; }
+
+/* ── iPad（601px–1024px）── */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .mobile-only { display: inline-flex; }
+}
 
 /* ── Footer ── */
 .footer {
@@ -928,6 +961,41 @@ const PHASES = [
       {
         "id": "t4_5",
         "text": "確認 GUI 可以正常啟動並使用",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5b",
+        "text": "整合 TrackNetV3 羽球追蹤（Pass 1：偵測羽球位置）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5c",
+        "text": "建立分析後時間軸回拉功能（含骨架 + 球軌跡疊加）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5d",
+        "text": "新增正常速度播放模式（正常速度 checkbox）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5e",
+        "text": "新增影片分析報告匯出功能（匯出報告按鈕）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5f",
+        "text": "新增擊球瞬間自動暫停並顯示建議功能",
         "status": "✅",
         "section": "GUI 介面建置",
         "indent": 0
@@ -1796,20 +1864,40 @@ document.getElementById('link-url-in').addEventListener('keypress', function(e) 
 
 // ════════════════════════════════════════════════════
 // 筆記（localStorage: ccep_notes）
+// 支援每個筆記卡片（key）擁有多個命名子欄位
+// 資料格式：{ key: [ {id: string, name: string, text: string}, ... ] }
 // ════════════════════════════════════════════════════
 var S_NOTES = 'ccep_notes';
+
 function loadNotes() {
   try { return JSON.parse(localStorage.getItem(S_NOTES) || '{}'); } catch(e) { return {}; }
 }
-function saveNote(key, val) {
-  var notes = loadNotes(); notes[key] = val;
+function saveNotes(notes) {
   localStorage.setItem(S_NOTES, JSON.stringify(notes));
   markDirty();
 }
+
+// 舊格式相容：若 notes[key] 是 string，轉換為陣列格式
+function getSubNotes(notes, key) {
+  var val = notes[key];
+  if (!val) return [];
+  if (typeof val === 'string') {
+    // 舊格式：自動轉換
+    return val ? [{ id: 'default', name: '筆記', text: val }] : [];
+  }
+  if (Array.isArray(val)) return val;
+  return [];
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function makeNoteCard(key, title, badge, isCurrent) {
   var notes = loadNotes();
   var card  = document.createElement('div');
   card.className = 'note-card' + (isCurrent ? ' current expanded' : '');
+  card.dataset.key = key;
 
   var head = document.createElement('div');
   head.className = 'note-card-head';
@@ -1821,17 +1909,84 @@ function makeNoteCard(key, title, badge, isCurrent) {
 
   var body = document.createElement('div');
   body.className = 'note-card-body';
-  var ta = document.createElement('textarea');
-  ta.className = 'note-area';
-  ta.dataset.key = key;
-  ta.placeholder = '在這裡輸入筆記...';
-  ta.value = notes[key] || '';
-  ta.addEventListener('input', function() { saveNote(key, ta.value); });
-  body.appendChild(ta);
 
-  card.appendChild(head); card.appendChild(body);
+  function renderSubNotes() {
+    body.innerHTML = '';
+    var subNotes = getSubNotes(loadNotes(), key);
+    subNotes.forEach(function(sn, i) {
+      var item = document.createElement('div');
+      item.className = 'subnote-item' + (isCurrent && i === 0 ? ' expanded' : '');
+
+      var sHead = document.createElement('div');
+      sHead.className = 'subnote-head';
+      sHead.innerHTML =
+        '<span class="subnote-name">' + sn.name + '</span>' +
+        '<button class="subnote-del" title="刪除此欄位">✕</button>' +
+        '<span class="subnote-chevron">▾</span>';
+      sHead.addEventListener('click', function(e) {
+        if (e.target.classList.contains('subnote-del')) return;
+        item.classList.toggle('expanded');
+      });
+      sHead.querySelector('.subnote-del').addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!confirm('確定刪除筆記欄位「' + sn.name + '」？')) return;
+        var n = loadNotes();
+        var arr = getSubNotes(n, key);
+        arr = arr.filter(function(x) { return x.id !== sn.id; });
+        n[key] = arr;
+        saveNotes(n);
+        renderSubNotes();
+      });
+
+      var sBody = document.createElement('div');
+      sBody.className = 'subnote-body';
+      var ta = document.createElement('textarea');
+      ta.className = 'note-area';
+      ta.placeholder = '在這裡輸入筆記...';
+      ta.value = sn.text || '';
+      ta.addEventListener('input', function() {
+        var n = loadNotes();
+        var arr = getSubNotes(n, key);
+        for (var j = 0; j < arr.length; j++) {
+          if (arr[j].id === sn.id) { arr[j].text = ta.value; break; }
+        }
+        n[key] = arr;
+        saveNotes(n);
+      });
+      sBody.appendChild(ta);
+
+      item.appendChild(sHead);
+      item.appendChild(sBody);
+      body.appendChild(item);
+    });
+
+    // 新增欄位按鈕
+    var addBtn = document.createElement('button');
+    addBtn.className = 'add-subnote-btn';
+    addBtn.textContent = '+ 新增筆記欄位';
+    addBtn.addEventListener('click', function() {
+      var name = prompt('筆記欄位名稱：');
+      if (!name || !name.trim()) return;
+      var n = loadNotes();
+      var arr = getSubNotes(n, key);
+      arr.push({ id: uid(), name: name.trim(), text: '' });
+      n[key] = arr;
+      saveNotes(n);
+      renderSubNotes();
+      // 展開新欄位
+      var items = body.querySelectorAll('.subnote-item');
+      if (items.length > 0) items[items.length - 1].classList.add('expanded');
+    });
+    body.appendChild(addBtn);
+  }
+
+  renderSubNotes();
+
+  card.appendChild(head);
+  card.appendChild(body);
   return card;
 }
+
 function renderNotes() {
   var week = currentWeekNum();
   var grid = document.getElementById('notes-grid');

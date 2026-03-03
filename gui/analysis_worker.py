@@ -8,6 +8,7 @@
   Pass 2（50-100%）：MediaPipe 骨架分析 + 動作辨識
 """
 
+import threading
 import time
 from collections import deque
 
@@ -60,17 +61,26 @@ class AnalysisWorker(QThread):
     progress       = pyqtSignal(int, int)
     frame_progress = pyqtSignal(int, int)                  # frame_idx, total_frames
     status_msg     = pyqtSignal(str)
-    finished_ok    = pyqtSignal(list, int, dict, int)      # +ball_positions, total_frames
+    finished_ok    = pyqtSignal(list, int, dict, int, dict)  # +ball_positions, total_frames, frame_landmarks
     error          = pyqtSignal(str)
 
-    def __init__(self, video_path: str, normal_speed: bool = False, parent=None):
+    def __init__(self, video_path: str, normal_speed: bool = False,
+                 pause_on_action: bool = False, parent=None):
         super().__init__(parent)
-        self.video_path   = video_path
-        self.normal_speed = normal_speed
-        self._stop_flag   = False
+        self.video_path      = video_path
+        self.normal_speed    = normal_speed
+        self.pause_on_action = pause_on_action
+        self._stop_flag      = False
+        self._pause_event    = threading.Event()
+        self._pause_event.set()   # 預設不暫停（event=set 表示「可繼續」）
 
     def stop(self):
         self._stop_flag = True
+        self._pause_event.set()   # 若正在暫停中，讓 worker 解除阻塞後自行結束
+
+    def resume(self):
+        """使用者點擊遮罩後，呼叫此方法讓分析繼續。"""
+        self._pause_event.set()
 
     def run(self):
         try:
@@ -109,7 +119,7 @@ class AnalysisWorker(QThread):
             pass    # TrackNet 失敗時以空字典繼續，不中斷整體分析
 
         if self._stop_flag:
-            self.finished_ok.emit([], 0, {}, 0)
+            self.finished_ok.emit([], 0, {}, 0, {})
             return
 
         self.progress.emit(total_frames, total_frames * 2)
@@ -130,10 +140,11 @@ class AnalysisWorker(QThread):
         detector      = ActionDetector(config)
         seq_buffer    = SequenceBuffer(maxlen=90)
         dtw_scorer    = DTWScorer(TEMPLATES_DIR)
-        event_log     = []
-        action_counts = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球"]}
-        frame_idx     = 0
+        event_log      = []
+        action_counts  = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球"]}
+        frame_idx      = 0
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
+        frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架
 
         cap = cv2.VideoCapture(self.video_path)
 
@@ -158,8 +169,13 @@ class AnalysisWorker(QThread):
             ball_trail.appendleft(ball_pos)
             ball_speed = _calc_ball_speed(ball_trail, fps)
 
+            _action_this_frame = False
+
             if results.pose_landmarks:
                 landmarks = results.pose_landmarks[0]
+
+                # 儲存歸一化座標（供分析後拖拉時疊加骨架）
+                frame_landmarks[frame_idx] = [(lm.x, lm.y) for lm in landmarks]
 
                 seq_buffer.add(timestamp_ms, landmarks)
 
@@ -207,6 +223,7 @@ class AnalysisWorker(QThread):
                     }
                     event_log.append(record)
                     self.action_found.emit(current_action, dtw_score, advice, features["timestamp_ms"])
+                    _action_this_frame = True
 
                 # 繪製骨架
                 color = (0, 255, 0)
@@ -234,6 +251,11 @@ class AnalysisWorker(QThread):
             self.frame_progress.emit(frame_idx, total_frames)
             frame_idx += 1
 
+            # 擊球暫停：讓 GUI 顯示建議後等待使用者點擊繼續
+            if _action_this_frame and self.pause_on_action and not self._stop_flag:
+                self._pause_event.clear()     # 切換為「暫停」狀態
+                self._pause_event.wait()      # 阻塞直到 resume() 被呼叫
+
             # 正常速度模式：計算剩餘時間並等待
             if self.normal_speed:
                 wait = 1.0 / fps - (time.perf_counter() - _t0)
@@ -244,7 +266,7 @@ class AnalysisWorker(QThread):
         cap.release()
 
         total_ms = int(frame_idx * 1000 / fps)
-        self.finished_ok.emit(event_log, total_ms, ball_positions, total_frames)
+        self.finished_ok.emit(event_log, total_ms, ball_positions, total_frames, frame_landmarks)
 
 
 # ══════════════════════════════════════════════
