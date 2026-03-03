@@ -568,7 +568,7 @@ body {
 
   </div><!-- end #layout-zone -->
 
-  <div class="footer">最後更新：2026/03/02 21:08</div>
+  <div class="footer" id="footer-ts">最後同步：—</div>
 </div>
 
 <script>
@@ -1179,8 +1179,8 @@ function today() {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 function fmt(d) {
-  return d.getFullYear() + '/' +
-    String(d.getMonth() + 1).padStart(2, '0') + '/' +
+  return d.getFullYear() + ' / ' +
+    String(d.getMonth() + 1).padStart(2, '0') + ' / ' +
     String(d.getDate()).padStart(2, '0');
 }
 function diffDays(a, b) { return Math.round((b - a) / 86400000); }
@@ -1493,6 +1493,15 @@ async function syncToGitHub() {
     var r = await fetch(apiUrl, { method: 'PUT', headers: hdrs, body: JSON.stringify(body) });
     if (r.ok) {
       markClean();
+      var tsNow = new Date();
+      var tsStr = tsNow.getFullYear() + '/' +
+        String(tsNow.getMonth()+1).padStart(2,'0') + '/' +
+        String(tsNow.getDate()).padStart(2,'0') + ' ' +
+        String(tsNow.getHours()).padStart(2,'0') + ':' +
+        String(tsNow.getMinutes()).padStart(2,'0');
+      localStorage.setItem('ccep_last_sync', tsStr);
+      var ftEl = document.getElementById('footer-ts');
+      if (ftEl) ftEl.textContent = '最後同步：' + tsStr;
       syncBtn.textContent = '✓ 已同步！';
       setTimeout(function() {
         syncBtn.textContent = '同步到 GitHub';
@@ -1840,6 +1849,9 @@ function renderNotes() {
   renderTodos();
   renderLinks();
   renderNotes();
+  var savedTs = localStorage.getItem('ccep_last_sync');
+  var ftEl = document.getElementById('footer-ts');
+  if (ftEl) ftEl.textContent = savedTs ? '最後同步：' + savedTs : '最後同步：—';
 })();
 </script>
 </body>
