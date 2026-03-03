@@ -13,6 +13,10 @@
   ],
   "links": [
     {
+      "name": "Github badminton-pose-eval",
+      "url": "https://github.com/leo930206/badminton-pose-eval"
+    },
+    {
       "name": "Gemini 專題秘書",
       "url": "https://gemini.google.com/app/0af9ad9bb0daa2d4?hl=zh-TW"
     },
@@ -27,10 +31,6 @@
     {
       "name": "期初專題提案書",
       "url": "file:///C:/Users/llleo/Downloads/AN4114011_%E5%AE%98%E8%A3%95%E5%AE%B8.pdf"
-    },
-    {
-      "name": "Github badminton-pose-eval",
-      "url": "https://github.com/leo930206/badminton-pose-eval"
     }
   ],
   "notes": {},
