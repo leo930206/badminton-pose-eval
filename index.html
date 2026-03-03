@@ -406,23 +406,27 @@ body {
   .info-col { padding-right: 0 !important; padding-left: 0 !important; border-left: none !important; }
   .info-col + .info-col { border-top: 1px solid var(--border2); padding-top: 8px; }
 
-  /* 里程碑：4欄 → 2欄 */
-  .milestone-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  /* 里程碑：4欄 → 1欄（逐條顯示） */
+  .milestone-row { grid-template-columns: 1fr; gap: 8px; }
 
   /* 總進度卡：水平 → 垂直 */
   .summary { flex-direction: column; align-items: flex-start; gap: 12px; }
   .stat-row { flex-wrap: wrap; gap: 12px; }
 
-  /* 待辦新增列：日期時間欄收窄 */
-  .input-row { flex-wrap: wrap; }
-  .todo-date-in { width: 100% !important; }
-  .todo-time-in { width: 100% !important; }
+  /* 待辦新增列：
+     第 1 排：文字輸入（整行）
+     第 2 排：日期 + 時間 + 新增按鈕（同一排） */
+  .input-row { flex-wrap: wrap; gap: 6px; }
+  #todo-input { width: 100%; flex: none !important; }
+  .todo-date-in { flex: 1 !important; width: auto !important; min-width: 0; }
+  .todo-time-in { width: 72px !important; flex: none !important; }
 
   /* 筆記：2欄 → 1欄 */
   .notes-grid { grid-template-columns: 1fr; }
 
-  /* 連結 URL 顯示限制放寬 */
-  .link-url-text { max-width: 140px; }
+  /* 重要連結：隱藏 URL，只顯示名稱 */
+  .link-url-text { display: none; }
+  .link-item a { font-size: 14px; }
 
   /* 重要連結新增列 */
   .link-name-in { width: 100% !important; }
