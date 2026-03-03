@@ -329,7 +329,7 @@ body {
 
 /* ── 筆記 ── */
 .notes-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr;
   gap: 8px; margin-top: 6px;
 }
 .notes-section-label {
@@ -435,8 +435,6 @@ body {
   .todo-date-in { flex: 1 !important; width: auto !important; min-width: 0; }
   .todo-time-in { width: 72px !important; flex: none !important; }
 
-  /* 筆記：2欄 → 1欄 */
-  .notes-grid { grid-template-columns: 1fr; }
 
   /* 重要連結：隱藏 URL，只顯示名稱 */
   .link-url-text { display: none; }
@@ -1850,13 +1848,26 @@ function renderNotes() {
 // ── 初始化 ───────────────────────────────────────────
 // ── 密碼保護 ──────────────────────────────────────────
 (function checkPassword() {
-  if (location.protocol === 'file:') return; // 本機開發不需要密碼
-  if (sessionStorage.getItem('ccep_auth') === '1') return; // 本次已驗證
-  var input = prompt('什麼東西完全沒有重量，但即使是世界上最強壯的人，也無法憋氣提著它超過幾分鐘？');
+  if (location.protocol === 'file:') return;
+  if (sessionStorage.getItem('ccep_auth') === '1') return;
+  var riddles = [
+    '什麼東西完全沒有重量，但即使是世界上最強壯的人，也無法憋氣提著它超過幾分鐘？',
+    '一個高大的男人走在傾盆大雨中，他沒有雨傘，也沒有戴帽子，全身上下的衣服都濕透了，但他的頭髮一根都沒有濕。為什麼？',
+    '什麼數字，如果你把它倒過來放，它的數值會立刻增加一半？',
+    '它就在你面前，你看得見它，卻摸不著它；你可以穿過它，它卻永遠跟著你走。它是什麼？',
+    '一場馬拉松比賽中，你奮力衝刺，終於超越了第二名，請問你現在是第幾名？',
+    '製造它的人不需要它，買它的人不使用它，使用它的人卻完全不知道自己在用它。它是什麼？',
+    '什麼東西，你只要一說出它的名字，就會立刻把它打破？',
+    '什麼東西，你每抽一口，它就會變短一點？',
+    '它是黑色的，但被弄髒（使用過）後會變成白色，擦乾淨後又變回原來的黑色。它是什麼？',
+    '它有手卻沒有手臂，有臉卻沒有眼睛，它跑得很快卻永遠留在原地。它是什麼？'
+  ];
+  var q = riddles[Math.floor(Math.random() * riddles.length)];
+  var input = prompt(q);
   if (input === '932266') {
     sessionStorage.setItem('ccep_auth', '1');
   } else {
-    document.body.innerHTML = '<div style="text-align:center;padding:80px;font-family:sans-serif;color:#cf222e;font-size:18px;">密碼錯誤，請重新整理頁面再試。</div>';
+    document.body.innerHTML = '<div style="text-align:center;padding:80px;font-family:sans-serif;color:#cf222e;font-size:22px;font-weight:700;">要不要打羽毛球</div>';
     throw new Error('auth failed');
   }
 })();
