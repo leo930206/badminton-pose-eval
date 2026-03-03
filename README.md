@@ -69,17 +69,9 @@ pip install mediapipe opencv-python PyQt5 numpy
 
 ## 執行方式
 
-**命令列模式：**
 ```bash
 python main.py
 ```
-
-**GUI 模式：**
-```bash
-python gui_main.py
-```
-
-測試影片預設路徑為 `datasets/test.mp4`，可在 `config.py` 修改。
 
 ---
 
