@@ -1852,7 +1852,7 @@ function renderNotes() {
 (function checkPassword() {
   if (location.protocol === 'file:') return; // 本機開發不需要密碼
   if (sessionStorage.getItem('ccep_auth') === '1') return; // 本次已驗證
-  var input = prompt('請輸入訪問密碼：');
+  var input = prompt('什麼東西完全沒有重量，但即使是世界上最強壯的人，也無法憋氣提著它超過幾分鐘？');
   if (input === '932266') {
     sessionStorage.setItem('ccep_auth', '1');
   } else {
