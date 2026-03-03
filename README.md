@@ -1,5 +1,5 @@
 # Badminton Pose Evaluation System
-### 基於電腦視覺之羽球動作辨識與評估系統
+### 電腦視覺之羽球技術動作評估系統
 
 ---
 

@@ -522,7 +522,7 @@ body {
 <header class="site-header">
   <div class="hdr-spacer"></div>
   <div class="hdr-center">
-    <h1>基於電腦視覺之羽球動作辨識與評估系統</h1>
+    <h1>電腦視覺之羽球技術動作評估系統</h1>
     <p>官裕宸 ｜ 成大不分系畢業專題 ｜ CCEP</p>
   </div>
   <div class="hdr-right">

@@ -158,7 +158,7 @@ class _HitBanner(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AI 羽球動作分析系統")
+        self.setWindowTitle("電腦視覺之羽球技術動作評估系統")
         self.resize(1280, 720)
 
         self._worker               = None
