@@ -1237,7 +1237,7 @@ function renderDates() {
     // 新排版：第一行最大，二三四行同等大小
     card.innerHTML =
       '<div class="ms-title' + (next ? ' ' + cd.cls : '') + '">' + m.label + '</div>' +
-      '<div class="ms-meta">' + dateStr + ' ' + m.sub + ' 第 ' + m.week + ' 週</div>' +
+      '<div class="ms-meta">&#x1F4C5; ' + dateStr + '&nbsp;&nbsp;' + m.sub + '&nbsp;&nbsp;第 ' + m.week + ' 週</div>' +
       '<div class="ms-meta">&#x1F4CD; ' + m.location + '</div>' +
       '<div class="ms-cd ' + cd.cls + '">' + cd.text + '</div>';
 
@@ -1867,7 +1867,7 @@ function renderNotes() {
   if (input === '932266') {
     sessionStorage.setItem('ccep_auth', '1');
   } else {
-    document.body.innerHTML = '<div style="text-align:center;padding:80px;font-family:sans-serif;color:#cf222e;font-size:22px;font-weight:700;">要不要打羽毛球</div>';
+    document.body.innerHTML = '<div style="text-align:center;padding:80px;font-family:sans-serif;color:#0969da;font-size:22px;font-weight:700;">要不要打羽毛球</div>';
     throw new Error('auth failed');
   }
 })();
