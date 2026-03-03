@@ -54,11 +54,20 @@ class _VideoLabel(QLabel):
             if not isinstance(child, QWidget):
                 continue
             if isinstance(child, _HitBanner):
-                # 橫幅固定在底部
                 bh = _HitBanner.BANNER_H
                 child.setGeometry(0, self.height() - bh, self.width(), bh)
             else:
                 child.setGeometry(self.rect())
+
+    def mousePressEvent(self, event):
+        """點擊影片區任何地方 → 若橫幅正在顯示則繼續分析。"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            for child in self.children():
+                if isinstance(child, _HitBanner) and child.isVisible():
+                    child.hide()
+                    child.resume_requested.emit()
+                    return
+        super().mousePressEvent(event)
 
 
 class _HitBanner(QWidget):

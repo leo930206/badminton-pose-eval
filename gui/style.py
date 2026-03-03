@@ -11,23 +11,23 @@ APP_STYLESHEET = """
 
 /* ── 全域基礎 ── */
 QWidget {
-    background-color: #f5f5f7;
-    color: #1d1d1f;
-    font-family: "Segoe UI", "Microsoft JhengHei UI", Arial, sans-serif;
+    background-color: #f2f2f7;
+    color: #1c1c1e;
+    font-family: "Segoe UI Variable", "Segoe UI", "PingFang TC", "Microsoft JhengHei UI", sans-serif;
     font-size: 16px;
 }
 
 /* ── 普通按鈕（白底灰框） ── */
 QPushButton {
     background-color: #ffffff;
-    color: #1d1d1f;
-    border: 1px solid #d2d2d7;
+    color: #1c1c1e;
+    border: 1px solid #c6c6c8;
     border-radius: 7px;
     padding: 5px 16px;
     font-weight: 500;
     min-width: 72px;
 }
-QPushButton:hover   { background-color: #f0f0f2; }
+QPushButton:hover   { background-color: #f2f2f7; }
 QPushButton:pressed { background-color: #e5e5ea; }
 QPushButton:disabled {
     color: #adadb8;
@@ -71,11 +71,12 @@ QProgressBar::chunk {
     border-radius: 3px;
 }
 
-/* ── 影片顯示區（深色） ── */
+/* ── 影片顯示區（空白時淺色佔位符；有影像時被 pixmap 覆蓋，背景不可見） ── */
 QLabel#video_label {
-    background-color: #1c1c1e;
+    background-color: #e5e5ea;
+    border: 2px dashed #c7c7cc;
     border-radius: 10px;
-    color: #636366;
+    color: #8e8e93;
 }
 
 /* ── 區塊小標題（LIVE LOG / 整場報告） ── */
@@ -95,10 +96,10 @@ QLabel#lbl_status {
 /* ── 文字框（即時紀錄 & 整場報告） ── */
 QTextEdit {
     background-color: #ffffff;
-    border: 1px solid #d2d2d7;
+    border: 1px solid #c6c6c8;
     border-radius: 8px;
     padding: 8px 10px;
-    color: #1d1d1f;
+    color: #1c1c1e;
     selection-background-color: #007aff;
     selection-color: white;
 }
@@ -121,7 +122,7 @@ QSplitter::handle:horizontal {
 /* ── 即時狀態卡片外框 ── */
 QFrame#stats_card {
     background-color: #ffffff;
-    border: 1px solid #d2d2d7;
+    border: 1px solid #c6c6c8;
     border-radius: 10px;
 }
 
