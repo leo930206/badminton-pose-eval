@@ -128,6 +128,17 @@ class MainWindow(QMainWindow):
         row_speed.addWidget(self.lbl_speed_val)
         card_layout.addLayout(row_speed)
 
+        # 球速 row
+        row_ball = QHBoxLayout()
+        lbl_ball_key = QLabel("球速（px/s）")
+        lbl_ball_key.setObjectName("stat_key")
+        self.lbl_ball_val = QLabel("—")
+        self.lbl_ball_val.setObjectName("stat_val")
+        row_ball.addWidget(lbl_ball_key)
+        row_ball.addStretch()
+        row_ball.addWidget(self.lbl_ball_val)
+        card_layout.addLayout(row_ball)
+
         # 動作狀態 row
         row_ctx = QHBoxLayout()
         lbl_ctx_key = QLabel("動作狀態")
@@ -217,6 +228,7 @@ class MainWindow(QMainWindow):
         self.lbl_status.setText("分析中...")
 
         self.lbl_speed_val.setText("—")
+        self.lbl_ball_val.setText("—")
         self.lbl_ctx_val.setText("—")
         for name, lbl in self.count_labels.items():
             lbl.setText(f"{name}\n0")
@@ -226,6 +238,7 @@ class MainWindow(QMainWindow):
         self._worker.action_found.connect(self._on_action)
         self._worker.stats_updated.connect(self._on_stats)
         self._worker.progress.connect(self._on_progress)
+        self._worker.status_msg.connect(self.lbl_status.setText)
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.error.connect(self._on_error)
         self._worker.start()
@@ -256,9 +269,10 @@ class MainWindow(QMainWindow):
 
     _CTX_ZH = {"offense": "進攻", "defense": "防守", "neutral": "待機"}
 
-    def _on_stats(self, speed: float, context: str, counts: dict):
+    def _on_stats(self, speed: float, context: str, counts: dict, ball_speed: float):
         """每幀更新即時狀態卡片。"""
         self.lbl_speed_val.setText(f"{speed:.2f}")
+        self.lbl_ball_val.setText(f"{ball_speed:.0f}" if ball_speed > 0 else "—")
         self.lbl_ctx_val.setText(self._CTX_ZH.get(context, context))
         for name, lbl in self.count_labels.items():
             lbl.setText(f"{name}\n{counts.get(name, 0)}")

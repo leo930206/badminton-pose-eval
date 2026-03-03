@@ -11,6 +11,10 @@ MODEL_PRED_PATH = os.path.join("output", "model_predictions.jsonl")
 TEMPLATES_DIR = os.path.join("datasets", "templates")
 RAW_VIDEOS_DIR = os.path.join("datasets", "raw")
 
+# TrackNetV3 羽球追蹤模型
+TRACKNET_PATH   = os.path.join("tracknet", "ckpts", "TrackNet_best.pt")
+INPAINTNET_PATH = os.path.join("tracknet", "ckpts", "InpaintNet_best.pt")
+
 
 @dataclass
 class Config:

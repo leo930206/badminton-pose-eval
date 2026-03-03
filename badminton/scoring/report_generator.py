@@ -80,16 +80,24 @@ def generate_report(event_log: list, video_name: str = "", total_ms: int = 0) ->
 
     # 逐球紀錄
     for event in event_log:
-        ts = ms_to_timestamp(event.get("timestamp_ms", 0))
-        action = event.get("action", "?")
-        dtw_score = event.get("dtw_score")
-        advice = event.get("advice", [])
+        ts         = ms_to_timestamp(event.get("timestamp_ms", 0))
+        action     = event.get("action", "?")
+        dtw_score  = event.get("dtw_score")
+        advice     = event.get("advice", [])
+        ball_speed = event.get("ball_speed", 0.0)
+        hit_height = event.get("hit_height", 0.0)
 
-        stars = score_to_stars(dtw_score)
-        score_str = f"{dtw_score:.0f}%" if dtw_score is not None else "  N/A"
+        stars      = score_to_stars(dtw_score)
+        score_str  = f"{dtw_score:.0f}%" if dtw_score is not None else "  N/A"
         advice_str = advice[0] if advice else ""
+        extra_parts = []
+        if ball_speed > 0:
+            extra_parts.append(f"球速:{ball_speed:.0f}")
+        if hit_height > 0:
+            extra_parts.append(f"高度:{hit_height*100:.0f}%")
+        extra_str  = " ".join(extra_parts)
 
-        lines.append(f"[{ts}] {action}  {stars}  {score_str:<6}  {advice_str}")
+        lines.append(f"[{ts}] {action}  {stars}  {score_str:<6}  {extra_str:<16}  {advice_str}")
 
     lines.append("")
     lines.append("─" * 51)

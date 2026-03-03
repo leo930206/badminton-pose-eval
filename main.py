@@ -5,6 +5,9 @@
 
 import sys
 
+# torch 必須在 PyQt5 之前載入，否則 Windows 上 CUDA DLL 與 Qt DLL 會衝突
+import torch  # noqa: F401
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QIcon, QPainter, QPixmap
 from PyQt5.QtWidgets import QApplication
