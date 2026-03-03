@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1142 不分系專題 進度管理工具</title>
+<style>
+:root {
+  --bg:      #f6f8fa;
+  --panel:   #ffffff;
+  --card:    #f6f8fa;
+  --border:  #d0d7de;
+  --border2: #e8ecef;
+  --accent:  #0969da;
+  --green:   #1a7f37;
+  --orange:  #9a6700;
+  --gray:    #8c959f;
+  --red:     #cf222e;
+  --text:    #24292f;
+  --text2:   #57606a;
+  --text3:   #8c959f;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.site-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center;
+}
+.hdr-spacer { flex: 1; }
+.hdr-center { flex: 2; text-align: center; }
+.hdr-center h1 {
+  font-size: 20px; font-weight: 700; color: var(--text);
+  letter-spacing: -.3px;
+}
+.hdr-center p { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.hdr-right {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px;
+}
+.hdr-pct {
+  font-size: 13px; font-weight: 700; color: var(--green);
+  background: #dafbe1; border: 1px solid #aef0b5;
+  border-radius: 20px; padding: 3px 12px;
+}
+.layout-btn {
+  padding: 4px 12px; border: 1px solid var(--border);
+  border-radius: 6px; background: white; color: var(--text2);
+  font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.layout-btn:hover { background: var(--card); }
+.layout-btn.active {
+  background: #fff3cd; border-color: #ffc107;
+  color: #7c5c00; font-weight: 600;
+}
+#sync-btn:disabled { opacity: .65; cursor: default; }
+
+/* ── Layout ── */
+.wrap { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+/* ── 日期 / 里程碑面板 ── */
+.info-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.info-top { display: flex; gap: 0; margin-bottom: 14px; }
+.info-col { flex: 1; padding-right: 24px; }
+.info-col:last-child { padding-right: 0; border-right: none; }
+.info-col + .info-col { padding-left: 24px; border-left: 1px solid var(--border2); }
+.info-label { font-size: 10px; font-weight: 700; letter-spacing: .7px;
+              text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.info-date  { font-size: 17px; font-weight: 700; color: var(--text); }
+.info-sub   { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.info-countdown { font-size: 12px; font-weight: 600; }
+.info-countdown.soon   { color: var(--orange); }
+.info-countdown.urgent { color: var(--red); }
+.info-countdown.done   { color: var(--text3); }
+.info-countdown.ok     { color: var(--accent); }
+
+/* ── 里程碑卡片（新排版） ── */
+.milestone-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border2);
+}
+.milestone {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.milestone.next { background: #ddf4ff; border-color: #54aeff; }
+.milestone.past { opacity: .55; }
+
+/* 第一行：標題（最大） */
+.ms-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  margin-bottom: 8px; line-height: 1.2;
+}
+.ms-title.ok     { color: var(--accent); }
+.ms-title.soon   { color: var(--orange); }
+.ms-title.urgent { color: var(--red); }
+.milestone.next .ms-cd { color: var(--accent); }
+
+/* 第二三行：日期/時間/週次、地點 */
+.ms-meta {
+  font-size: 11px; color: var(--text2);
+  margin-top: 3px; line-height: 1.6;
+}
+
+/* 第四行：倒數 */
+.ms-cd {
+  font-size: 11px; font-weight: 600; margin-top: 5px;
+}
+.ms-cd.ok     { color: var(--accent); }
+.ms-cd.soon   { color: var(--orange); }
+.ms-cd.urgent { color: var(--red); }
+.ms-cd.done   { color: var(--text3); }
+
+/* ── 總進度卡 ── */
+.summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  display: flex; align-items: center; gap: 24px;
+}
+.circ-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.circ-wrap svg { transform: rotate(-90deg); }
+.c-bg   { fill: none; stroke: #eaeef2; stroke-width: 9; }
+.c-fill { fill: none; stroke: #1a7f37; stroke-width: 9;
+          stroke-linecap: round; transition: stroke-dashoffset .7s; }
+.circ-pct {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: var(--green);
+}
+.stats h3  { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.stat-row  { display: flex; gap: 20px; }
+.stat      { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+.stat-n    { font-size: 18px; font-weight: 700; }
+.stat-n.d  { color: var(--green); }
+.stat-n.p  { color: var(--accent); }
+.stat-n.t  { color: var(--gray); }
+
+/* ── Reorderable 外層 ── */
+.reorderable { margin-bottom: 8px; }
+#section-summary { margin-bottom: 16px; }
+
+/* ── 排版模式工具列 ── */
+.layout-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 14px; margin-bottom: 6px;
+  background: #fff8e1; border: 1px dashed #ffc107;
+  border-radius: 8px; font-size: 12px;
+}
+.layout-label { color: #7c5c00; font-weight: 700; }
+.layout-btns  { display: flex; gap: 6px; }
+.move-btn {
+  padding: 3px 11px; border: 1px solid #ffc107;
+  border-radius: 4px; background: white; color: #7c5c00;
+  font-size: 12px; cursor: pointer;
+}
+.move-btn:hover { background: #ffc107; }
+
+/* ── Phase 卡片 ── */
+.phase {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.ph-head {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 11px;
+  cursor: pointer; user-select: none;
+}
+.ph-head:hover { background: #f0f3f6; }
+.ph-badge {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.ph-badge.d { background: #dafbe1; color: #1a7f37; border: 1px solid #aef0b5; }
+.ph-badge.p { background: #ddf4ff; color: #0969da; border: 1px solid #54aeff; }
+.ph-badge.t { background: #f6f8fa; color: #8c959f; border: 1px solid #d0d7de; }
+.ph-info  { flex: 1; }
+.ph-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.ph-sub   { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.ph-pct   { font-size: 12px; font-weight: 600; color: var(--text2); }
+.ph-chevron { color: var(--text3); font-size: 11px; margin-left: 4px; transition: transform .18s; }
+.phase.collapsed .ph-chevron { transform: rotate(-90deg); }
+.ph-bar { height: 3px; background: #eaeef2; }
+.ph-bar-fill { height: 100%; transition: width .4s; }
+.ph-body { padding: 4px 16px 12px; }
+.phase.collapsed .ph-body { display: none; }
+
+/* ── Section 標籤 ── */
+.sec-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: .7px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 10px 8px 3px;
+}
+
+/* ── 任務列（唯讀） ── */
+.task {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 4px 8px; border-radius: 5px;
+}
+.task.sub  { padding-left: 22px; }
+.task-icon { flex-shrink: 0; width: 16px; font-size: 13px; margin-top: 1px; text-align: center; }
+.task-text { font-size: 13px; line-height: 1.5; }
+.task[data-s="✅"] .task-text { color: #8c959f; text-decoration: line-through; }
+.task[data-s="⏳"] .task-text { color: var(--text); font-weight: 500; }
+.task[data-s="x"]  .task-text { color: var(--text2); }
+.task[data-s="✅"] .task-icon { color: #1a7f37; }
+.task[data-s="⏳"] .task-icon { color: #9a6700; }
+.task[data-s="x"]  .task-icon { color: #c8d0d9; }
+
+/* ── 通用 Section Panel ── */
+.section-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.section-head {
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.section-head:hover { background: #f0f3f6; }
+.section-title   { font-size: 13px; font-weight: 600; color: var(--text); }
+.section-chevron { color: var(--text3); font-size: 11px; transition: transform .18s; }
+.section-panel.collapsed .section-chevron { transform: rotate(-90deg); }
+.section-panel.collapsed .section-body   { display: none; }
+.section-body { padding: 4px 16px 14px; }
+
+/* ── 待辦事項 ── */
+.input-row {
+  display: flex; gap: 8px; margin-bottom: 10px; margin-top: 6px;
+}
+.input-row input {
+  flex: 1; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none;
+  background: var(--panel);
+}
+.input-row input:focus { border-color: var(--accent); }
+.btn-add {
+  padding: 7px 14px; border: none; border-radius: 6px;
+  background: var(--accent); color: white;
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn-add:hover { background: #0860ca; }
+.todo-list { list-style: none; }
+.todo-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 5px;
+}
+.todo-item:hover { background: var(--card); }
+.todo-item input[type="checkbox"] { cursor: pointer; width: 15px; height: 15px; flex-shrink: 0; }
+.todo-text { flex: 1; font-size: 13px; }
+.todo-item.done .todo-text { color: var(--text3); text-decoration: line-through; }
+.btn-del {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 13px; padding: 2px 5px;
+  border-radius: 4px; line-height: 1; flex-shrink: 0;
+}
+.btn-del:hover { background: #ffd7d5; color: var(--red); }
+.btn-edit {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 12px; padding: 2px 5px;
+  border-radius: 4px; line-height: 1; flex-shrink: 0;
+}
+.btn-edit:hover { background: #ddf4ff; color: var(--accent); }
+.todo-editing { flex-wrap: wrap; gap: 6px !important; }
+.todo-edit-text {
+  flex: 1; min-width: 120px; padding: 4px 8px;
+  border: 1px solid var(--border); border-radius: 5px;
+  font-size: 13px; font-family: inherit; outline: none;
+}
+.todo-edit-text:focus { border-color: var(--accent); }
+.empty-hint { color: var(--text3); font-size: 13px; padding: 6px 8px; }
+.todo-date-in { width: 130px; flex: none !important; padding: 7px 8px !important; }
+.todo-time-in { width:  78px; flex: none !important; padding: 7px 8px !important; }
+.todo-deadline {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  font-weight: 600; flex-shrink: 0; white-space: nowrap;
+}
+.todo-deadline.overdue { background: #ffd7d5; color: var(--red); }
+.todo-deadline.urgent  { background: #fff3cd; color: var(--orange); }
+.todo-deadline.ok      { background: #ddf4ff; color: var(--accent); }
+
+/* ── 重要連結 ── */
+.link-name-in { width: 150px !important; flex: none !important; }
+.link-list { display: flex; flex-direction: column; gap: 2px; }
+.link-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 5px;
+}
+.link-item:hover { background: var(--card); }
+.link-item a {
+  font-size: 13px; font-weight: 500; color: var(--accent);
+  text-decoration: none; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.link-item a:hover { text-decoration: underline; }
+.link-url-text {
+  font-size: 11px; color: var(--text3); flex-shrink: 0;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── 筆記 ── */
+.notes-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-top: 6px;
+}
+.notes-section-label {
+  grid-column: 1 / -1;
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--text3);
+  padding: 10px 0 4px; border-top: 1px solid var(--border2); margin-top: 4px;
+}
+.notes-section-label:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
+.note-card {
+  border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.note-card.current { border-color: var(--accent); box-shadow: 0 0 0 2px #0969da22; }
+.note-card-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; cursor: pointer; user-select: none;
+  background: var(--card);
+}
+.note-card-head:hover { background: #f0f3f6; }
+.note-card.current .note-card-head { background: #ddf4ff; }
+.note-card-title { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; }
+.note-card-badge {
+  font-size: 9px; color: white; background: var(--accent);
+  border-radius: 3px; padding: 1px 5px; font-weight: 700; flex-shrink: 0;
+}
+.note-card-chevron { color: var(--text3); font-size: 10px; transition: transform .18s; flex-shrink: 0; }
+.note-card.expanded .note-card-chevron { transform: rotate(180deg); }
+.note-card-body { display: none; }
+.note-card.expanded .note-card-body { display: block; }
+.note-area {
+  width: 100%; min-height: 110px; padding: 10px 12px;
+  border: none; border-top: 1px solid var(--border2);
+  resize: vertical; font-size: 13px;
+  font-family: inherit; background: white;
+  outline: none; line-height: 1.6;
+}
+.note-area:focus { background: #fffef5; }
+
+/* ── Footer ── */
+.footer {
+  text-align: center; font-size: 11px; color: var(--text3);
+  padding: 20px 0 32px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="site-header">
+  <div class="hdr-spacer"></div>
+  <div class="hdr-center">
+    <h1>基於電腦視覺之羽球動作辨識與評估系統</h1>
+    <p>官裕宸 ｜ 成大不分系畢業專題 ｜ CCEP</p>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-pct" id="hdr-pct">0% 完成</div>
+    <div style="display:flex;gap:6px">
+      <button class="layout-btn" onclick="setupToken()" title="設定 GitHub Token">&#9881;</button>
+      <button id="sync-btn" class="layout-btn" onclick="syncToGitHub()">同步到 GitHub</button>
+      <button id="layout-btn" class="layout-btn" onclick="toggleLayout()">排版模式</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 日期 / 里程碑面板（固定不可排版） -->
+  <div class="info-panel">
+    <div class="info-top">
+      <div class="info-col">
+        <div class="info-label">今天</div>
+        <div class="info-date" id="today-date">—</div>
+        <div class="info-sub"  id="today-week">第 — 週</div>
+      </div>
+      <div class="info-col">
+        <div class="info-label">預計完成日</div>
+        <div class="info-date">2026 / 06 / 10</div>
+        <div class="info-sub">第 16 週</div>
+        <div class="info-countdown" id="deadline-cd"></div>
+      </div>
+    </div>
+    <div class="milestone-row" id="milestones"></div>
+  </div>
+
+  <!-- ── 可排版區域 ── -->
+  <div id="layout-zone">
+
+    <!-- 整體完成進度 -->
+    <div id="section-summary" class="reorderable">
+      <div class="summary">
+        <div class="circ-wrap">
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle class="c-bg"   cx="36" cy="36" r="27"/>
+            <circle class="c-fill" id="circ" cx="36" cy="36" r="27"
+              stroke-dasharray="169.65" stroke-dashoffset="169.65"/>
+          </svg>
+          <div class="circ-pct" id="circ-pct">0%</div>
+        </div>
+        <div class="stats">
+          <h3>整體完成進度</h3>
+          <div class="stat-row">
+            <div class="stat"><span class="stat-n d" id="cnt-d">0</span><span>已完成</span></div>
+            <div class="stat"><span class="stat-n p" id="cnt-p">0</span><span>進行中</span></div>
+            <div class="stat"><span class="stat-n t" id="cnt-t">0</span><span>待開始</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 卡片 -->
+    <div id="section-phases" class="reorderable">
+      <div id="phases"></div>
+    </div>
+
+    <!-- 待辦事項 -->
+    <div id="section-todo" class="reorderable">
+      <div class="section-panel">
+        <div class="section-head" onclick="this.closest('.section-panel').classList.toggle('collapsed')">
+          <span class="section-title">待辦事項</span>
+          <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <input id="todo-input" type="text" placeholder="輸入待辦事項，按 Enter 或點新增..." />
+            <input id="todo-date" type="date"  class="todo-date-in" title="截止日期（可不填）" />
+            <input id="todo-time" type="text" class="todo-time-in" placeholder="HH:MM" maxlength="5" title="24小時制，例如 21:00（可不填）" />
+            <button id="todo-add" class="btn-add">新增</button>
+          </div>
+          <ul id="todo-list" class="todo-list"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 重要連結 -->
+    <div id="section-links" class="reorderable">
+      <div class="section-panel">
+        <div class="section-head" onclick="this.closest('.section-panel').classList.toggle('collapsed')">
+          <span class="section-title">重要連結</span>
+          <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <input id="link-name-in" class="link-name-in" type="text" placeholder="顯示名稱（可留空）" />
+            <input id="link-url-in"  type="text" placeholder="貼上網址 https://..." />
+            <button id="link-add" class="btn-add">新增</button>
+          </div>
+          <div id="link-list" class="link-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 筆記 -->
+    <div id="section-notes" class="reorderable">
+      <div class="section-panel">
+        <div class="section-head" onclick="this.closest('.section-panel').classList.toggle('collapsed')">
+          <span class="section-title">筆記</span>
+          <span class="section-chevron">▾</span>
+        </div>
+        <div class="section-body">
+          <div class="notes-grid" id="notes-grid"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #layout-zone -->
+
+  <div class="footer">最後更新：2026/03/02 21:08</div>
+</div>
+
+<script>
+// ── 進度資料（由 Python 嵌入） ────────────────────────
+const PHASES = [
+  {
+    "id": "p1",
+    "num": 1,
+    "status": "✅",
+    "title": "Phase 1｜Week 1–3｜程式基礎建設",
+    "tasks": [
+      {
+        "id": "t1_1",
+        "text": "安裝 Python 開發環境（Python 3.10+、pip）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t1_2",
+        "text": "安裝核心套件：mediapipe、opencv-python",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t1_3",
+        "text": "確認 MediaPipe 模型可以正常下載並執行",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t1_4",
+        "text": "建立基本的 main.py，可以讀取影片並顯示骨架",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t1_5",
+        "text": "將 main.py 拆分成模組化結構",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t1_5a",
+        "text": "config.py：集中管理所有參數設定",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_5b",
+        "text": "badminton/pose/tracker.py：計算手肘角度、手腕速度等",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_5c",
+        "text": "badminton/classification/detector.py：判斷動作類型",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_5d",
+        "text": "badminton/scoring/rule_engine.py：根據角度初步評分",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_5e",
+        "text": "badminton/data/logger.py：把偵測動作存成紀錄檔",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_5f",
+        "text": "badminton/display/renderer.py：在畫面上畫骨架和文字",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t1_6",
+        "text": "確認重構後的程式可以正常執行，功能與之前相同",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      }
+    ]
+  },
+  {
+    "id": "p2",
+    "num": 2,
+    "status": "⏳",
+    "title": "Phase 2｜Week 4–7｜建立職業選手動作模板庫",
+    "tasks": [
+      {
+        "id": "t2_1",
+        "text": "建立模板存放資料夾結構（datasets/templates/smash/、clear/ 等）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_2",
+        "text": "建立骨架擷取腳本（tools/extract_template.py）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_3",
+        "text": "在 YouTube 搜尋並下載職業選手示範教學影片（每動作至少 3 段）",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_3a",
+        "text": "殺球（Smash）— badminton smash technique tutorial",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t2_3b",
+        "text": "高遠球（Clear）— badminton clear stroke tutorial",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t2_3c",
+        "text": "吊球（Drop）— badminton drop shot tutorial",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t2_3d",
+        "text": "平球（Drive）— badminton drive technique",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t2_3e",
+        "text": "切球（Cut）— badminton cut smash tutorial",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t2_4",
+        "text": "把下載的影片放到 datasets/raw/ 資料夾",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_5",
+        "text": "觀看影片，記錄每個乾淨動作片段的開始和結束時間（秒數）",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_6",
+        "text": "對每個片段執行擷取腳本，輸出骨架 JSON 模板",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_7",
+        "text": "確認各資料夾內有對應的 .json 模板檔案",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t2_8",
+        "text": "每種動作至少完成 3–5 個模板，共約 15–25 個模板檔案",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      }
+    ]
+  },
+  {
+    "id": "p3",
+    "num": 3,
+    "status": "⏳",
+    "title": "Phase 3｜Week 8–12｜DTW 比對評分核心演算法",
+    "tasks": [
+      {
+        "id": "t3_1",
+        "text": "建立骨架序列緩衝器（badminton/data/sequence_buffer.py）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_2",
+        "text": "實作 DTW 演算法（badminton/scoring/dtw_scorer.py）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_2a",
+        "text": "包含關節權重設定（手腕和手肘的差異影響分數比頭部更大）",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_2b",
+        "text": "包含關節差異分析（找出哪個關節差異最大，用來給建議）",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_3",
+        "text": "實作整場報告產生器（badminton/scoring/report_generator.py）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_4",
+        "text": "將 DTW 評分整合進主分析流程（gui/analysis_worker.py）",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_4a",
+        "text": "每次偵測到動作時自動取出最近骨架序列，進行 DTW 比對",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_4b",
+        "text": "在每筆分析紀錄中加入 dtw_score 欄位",
+        "status": "✅",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_5",
+        "text": "根據關節差異產生具體的中文改善建議",
+        "status": "✅",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_6",
+        "text": "驗證 DTW 分數合理性（需 Phase 2 模板完成後才能測試）",
+        "status": "x",
+        "section": null,
+        "indent": 0
+      },
+      {
+        "id": "t3_6a",
+        "text": "放入職業選手示範影片，確認分數接近 90% 以上",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_6b",
+        "text": "放入一般人影片，確認分數明顯低於職業選手",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      },
+      {
+        "id": "t3_6c",
+        "text": "確認建議文字自然、有參考價值",
+        "status": "x",
+        "section": null,
+        "indent": 1
+      }
+    ]
+  },
+  {
+    "id": "p4",
+    "num": 4,
+    "status": "⏳",
+    "title": "Phase 4｜Week 13–15｜GUI 介面整合與系統測試",
+    "tasks": [
+      {
+        "id": "t4_1",
+        "text": "安裝 PyQt5：pip install PyQt5",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_2",
+        "text": "建立主視窗（gui/main_window.py）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_2a",
+        "text": "左側：影片播放畫面（即時顯示含骨架疊加的影片）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 1
+      },
+      {
+        "id": "t4_2b",
+        "text": "右側上方：即時偵測紀錄（每偵測到一個動作就出現一行）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 1
+      },
+      {
+        "id": "t4_2c",
+        "text": "右側下方：整場報告（分析完成後顯示）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 1
+      },
+      {
+        "id": "t4_2d",
+        "text": "頂部工具列：選擇影片、開始分析、停止、進度條",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 1
+      },
+      {
+        "id": "t4_3",
+        "text": "建立背景分析執行緒（gui/analysis_worker.py）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_4",
+        "text": "建立 GUI 入口點（gui_main.py）",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_5",
+        "text": "確認 GUI 可以正常啟動並使用",
+        "status": "✅",
+        "section": "GUI 介面建置",
+        "indent": 0
+      },
+      {
+        "id": "t4_6",
+        "text": "測試「選擇影片→開始分析」完整流程是否順暢",
+        "status": "✅",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_7",
+        "text": "測試分析進度條是否正確更新",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_8",
+        "text": "測試影片結束後報告是否正確顯示",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_9",
+        "text": "測試「停止」按鈕是否能正確中斷分析",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_10",
+        "text": "測試沒有 DTW 模板的情況下是否顯示 N/A 而不是崩潰",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_11",
+        "text": "測試有 DTW 模板的情況下分數是否正確出現（需 Phase 2 完成後測試）",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_12",
+        "text": "在不同長度的影片上測試（短片 1 分鐘、長片 10 分鐘以上）",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      },
+      {
+        "id": "t4_13",
+        "text": "確認分析完成後的報告格式正確、可讀性高",
+        "status": "x",
+        "section": "系統整合測試",
+        "indent": 0
+      }
+    ]
+  },
+  {
+    "id": "p5",
+    "num": 5,
+    "status": "x",
+    "title": "Phase 5｜Week 16–18｜系統收尾與成果展示準備",
+    "tasks": [
+      {
+        "id": "t5_1",
+        "text": "修正測試中發現的所有 bug",
+        "status": "x",
+        "section": "系統優化",
+        "indent": 0
+      },
+      {
+        "id": "t5_2",
+        "text": "調整 DTW 評分的分數範圍，確保分布合理",
+        "status": "x",
+        "section": "系統優化",
+        "indent": 0
+      },
+      {
+        "id": "t5_3",
+        "text": "優化影片分析速度（確認不會太慢）",
+        "status": "x",
+        "section": "系統優化",
+        "indent": 0
+      },
+      {
+        "id": "t5_4",
+        "text": "確認程式在乾淨環境下可以正常安裝和執行",
+        "status": "x",
+        "section": "系統優化",
+        "indent": 0
+      },
+      {
+        "id": "t5_5",
+        "text": "撰寫系統架構說明（每個模組在做什麼）",
+        "status": "x",
+        "section": "成果報告撰寫",
+        "indent": 0
+      },
+      {
+        "id": "t5_6",
+        "text": "整理實驗結果（DTW 分數與實際動作品質的對應關係）",
+        "status": "x",
+        "section": "成果報告撰寫",
+        "indent": 0
+      },
+      {
+        "id": "t5_7",
+        "text": "說明系統限制（單人、右手持拍、角度限制等）",
+        "status": "x",
+        "section": "成果報告撰寫",
+        "indent": 0
+      },
+      {
+        "id": "t5_8",
+        "text": "準備展示用的測試影片（明顯好球和明顯差球的對比）",
+        "status": "x",
+        "section": "成果報告撰寫",
+        "indent": 0
+      },
+      {
+        "id": "t5_9",
+        "text": "準備現場 Demo 的操作流程（確保不會現場出錯）",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 0
+      },
+      {
+        "id": "t5_10",
+        "text": "準備教授可能問的問題與答案",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 0
+      },
+      {
+        "id": "t5_10a",
+        "text": "「為什麼用 DTW 而不是深度學習？」",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 1
+      },
+      {
+        "id": "t5_10b",
+        "text": "「模板庫的選手夠代表性嗎？」",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 1
+      },
+      {
+        "id": "t5_10c",
+        "text": "「倉促回球怎麼處理？」",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 1
+      },
+      {
+        "id": "t5_10d",
+        "text": "「評分標準的依據是什麼？」",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 1
+      },
+      {
+        "id": "t5_11",
+        "text": "完成結案報告初稿",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 0
+      },
+      {
+        "id": "t5_12",
+        "text": "根據教授意見修改並定稿",
+        "status": "x",
+        "section": "成果展示準備",
+        "indent": 0
+      }
+    ]
+  }
+];
+
+// ── 常數 ─────────────────────────────────────────────
+const ICON = { '✅': '✓', '⏳': '◑', 'x': '○' };
+const CIRC = 2 * Math.PI * 27;  // ≈ 169.65
+
+// Week 1 = 2/22~2/28，Week 2 = 3/1~3/7，每 7 天一週
+const WEEK_ONE = new Date('2026-02-22');
+
+// ── 里程碑 ────────────────────────────────────────────
+const MILESTONES = [
+  { label: '月報告一',    date: '2026-04-01', sub: '18:20',         location: '共同教室 A1305', week: 6  },
+  { label: '月報告二',    date: '2026-04-29', sub: '18:20',         location: '共同教室 A1305', week: 10 },
+  { label: '月報告三',    date: '2026-05-27', sub: '18:20',         location: '共同教室 A1305', week: 14 },
+  { label: '期末成果發表', date: '2026-06-22', sub: '6/22–6/26', location: '暫未確定', week: 18 },
+];
+const DEADLINE = new Date('2026-06-10');
+
+// ── GitHub 同步設定 ───────────────────────────────────
+var GH_OWNER = 'leo930206';
+var GH_REPO  = 'badminton-pose-eval';
+var GH_FILE  = 'data.json';
+var S_TOKEN  = 'ccep_gh_token';
+
+// ── 未同步變更追蹤 ────────────────────────────────────
+var _dirty = false;
+function markDirty() { _dirty = true; }
+function markClean() { _dirty = false; }
+window.addEventListener('beforeunload', function(e) {
+  if (!_dirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
+// ── 週次 Wednesday 會議 ──────────────────────────────
+const MEETINGS = [
+  { key: 'w1',  label: '2/25 Meeting',  week: 1  },
+  { key: 'w2',  label: '3/4 Meeting',   week: 2  },
+  { key: 'w3',  label: '3/11 Meeting',  week: 3  },
+  { key: 'w4',  label: '3/18 Meeting',  week: 4  },
+  { key: 'w5',  label: '3/25 Meeting',  week: 5  },
+  { key: 'w6',  label: '4/1 Meeting',   week: 6  },
+  { key: 'w7',  label: '4/8 Meeting',   week: 7  },
+  { key: 'w8',  label: '4/15 Meeting',  week: 8  },
+  { key: 'w9',  label: '4/22 Meeting',  week: 9  },
+  { key: 'w10', label: '4/29 Meeting',  week: 10 },
+  { key: 'w11', label: '5/6 Meeting',   week: 11 },
+  { key: 'w12', label: '5/13 Meeting',  week: 12 },
+  { key: 'w13', label: '5/20 Meeting',  week: 13 },
+  { key: 'w14', label: '5/27 Meeting',  week: 14 },
+  { key: 'w15', label: '6/3 Meeting',   week: 15 },
+  { key: 'w16', label: '6/10 Meeting',  week: 16 },
+  { key: 'w17', label: '6/17 Meeting',  week: 17 },
+  { key: 'w18', label: '6/24 Meeting',  week: 18 },
+];
+const MILESTONE_NOTES = [
+  { key: 'report1', label: '月報告一 筆記（4/1）' },
+  { key: 'report2', label: '月報告二 筆記（4/29）' },
+  { key: 'report3', label: '月報告三 筆記（5/27）' },
+  { key: 'final',   label: '期末成果發表 筆記（6/22~6/26）' },
+];
+
+// ── 日期工具 ─────────────────────────────────────────
+function today() {
+  var d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function fmt(d) {
+  return d.getFullYear() + '/' +
+    String(d.getMonth() + 1).padStart(2, '0') + '/' +
+    String(d.getDate()).padStart(2, '0');
+}
+function diffDays(a, b) { return Math.round((b - a) / 86400000); }
+function cdText(days) {
+  if (days < 0)   return { text: '已過', cls: 'done' };
+  if (days === 0) return { text: '就是今天！', cls: 'urgent' };
+  if (days <= 7)  return { text: '還有 ' + days + ' 天', cls: 'urgent' };
+  if (days <= 30) return { text: '還有 ' + days + ' 天', cls: 'soon' };
+  return { text: '還有 ' + days + ' 天', cls: 'ok' };
+}
+function currentWeekNum() {
+  var diff = diffDays(WEEK_ONE, today());
+  return diff >= 0 ? Math.floor(diff / 7) + 1 : 1;
+}
+
+// ── 渲染日期面板 ─────────────────────────────────────
+function renderDates() {
+  var now  = today();
+  var week = currentWeekNum();
+  document.getElementById('today-date').textContent = fmt(now);
+  document.getElementById('today-week').textContent = '第 ' + week + ' 週';
+
+  var dlDays = diffDays(now, DEADLINE);
+  var dlCd   = cdText(dlDays);
+  var dlEl   = document.getElementById('deadline-cd');
+  dlEl.textContent = dlCd.text;
+  dlEl.className   = 'info-countdown ' + dlCd.cls;
+
+  var nextIdx = -1;
+  MILESTONES.forEach(function(m, i) {
+    if (nextIdx < 0 && diffDays(now, new Date(m.date)) >= 0) nextIdx = i;
+  });
+
+  var row = document.getElementById('milestones');
+  row.innerHTML = '';
+  MILESTONES.forEach(function(m, i) {
+    var md   = new Date(m.date);
+    var days = diffDays(now, md);
+    var past = days < 0;
+    var next = (i === nextIdx);
+    var cd   = cdText(days);
+
+    var card = document.createElement('div');
+    card.className = 'milestone' + (next ? ' next' : '') + (past ? ' past' : '');
+
+    var dateStr = (md.getMonth() + 1) + '/' + md.getDate();
+
+    // 新排版：第一行最大，二三四行同等大小
+    card.innerHTML =
+      '<div class="ms-title' + (next ? ' ' + cd.cls : '') + '">' + m.label + '</div>' +
+      '<div class="ms-meta">' + dateStr + ' ' + m.sub + ' 第 ' + m.week + ' 週</div>' +
+      '<div class="ms-meta">&#x1F4CD; ' + m.location + '</div>' +
+      '<div class="ms-cd ' + cd.cls + '">' + cd.text + '</div>';
+
+    row.appendChild(card);
+  });
+}
+
+// 自動每分鐘檢查跨日
+var _lastDay = today().getTime();
+setInterval(function() {
+  var d = today();
+  if (d.getTime() !== _lastDay) { _lastDay = d.getTime(); renderDates(); }
+}, 60000);
+
+// ── 渲染統計 ─────────────────────────────────────────
+function renderStats() {
+  var done = 0, prog = 0, todo = 0;
+  PHASES.forEach(function(ph) {
+    ph.tasks.forEach(function(t) {
+      if      (t.status === '✅') done++;
+      else if (t.status === '⏳') prog++;
+      else                            todo++;
+    });
+  });
+  var total = done + prog + todo;
+  var pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('hdr-pct').textContent = pct + '% 完成';
+  document.getElementById('circ').style.strokeDashoffset = CIRC * (1 - pct / 100);
+  document.getElementById('circ-pct').textContent = pct + '%';
+  document.getElementById('cnt-d').textContent = done;
+  document.getElementById('cnt-p').textContent = prog;
+  document.getElementById('cnt-t').textContent = todo;
+}
+
+// ── 渲染 Phase 卡片 ──────────────────────────────────
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function renderPhases() {
+  var wrap = document.getElementById('phases');
+  wrap.innerHTML = '';
+  PHASES.forEach(function(ph) {
+    var phDone  = ph.tasks.filter(function(t) { return t.status === '✅'; }).length;
+    var phTotal = ph.tasks.length;
+    var phPct   = phTotal ? Math.round(phDone / phTotal * 100) : 0;
+    var cls     = ph.status === '✅' ? 'd' : ph.status === '⏳' ? 'p' : 't';
+    var barCol  = ph.status === '✅' ? '#1a7f37' : ph.status === '⏳' ? '#0969da' : '#d0d7de';
+
+    var card = document.createElement('div');
+    card.className = 'phase' + (ph.status === 'x' ? ' collapsed' : '');
+
+    var head = document.createElement('div');
+    head.className = 'ph-head';
+    head.innerHTML =
+      '<div class="ph-badge ' + cls + '">' + ph.num + '</div>' +
+      '<div class="ph-info">' +
+        '<div class="ph-title">' + esc(ph.title) + '</div>' +
+        '<div class="ph-sub">' + phDone + ' / ' + phTotal + ' 項完成</div>' +
+      '</div>' +
+      '<span class="ph-pct">' + phPct + '%</span>' +
+      '<span class="ph-chevron">▾</span>';
+    head.addEventListener('click', function() { card.classList.toggle('collapsed'); });
+    card.appendChild(head);
+
+    var bar = document.createElement('div'); bar.className = 'ph-bar';
+    var fill = document.createElement('div'); fill.className = 'ph-bar-fill';
+    fill.style.cssText = 'width:' + phPct + '%;background:' + barCol;
+    bar.appendChild(fill);
+    card.appendChild(bar);
+
+    var body = document.createElement('div');
+    body.className = 'ph-body';
+    var lastSec = '__';
+    ph.tasks.forEach(function(task) {
+      if (task.section !== lastSec) {
+        lastSec = task.section;
+        if (task.section) {
+          var lbl = document.createElement('div');
+          lbl.className = 'sec-lbl'; lbl.textContent = task.section;
+          body.appendChild(lbl);
+        }
+      }
+      var row = document.createElement('div');
+      row.className = 'task' + (task.indent > 0 ? ' sub' : '');
+      row.dataset.s = task.status;
+      row.innerHTML =
+        '<span class="task-icon">' + (ICON[task.status] || '○') + '</span>' +
+        '<span class="task-text">' + esc(task.text) + '</span>';
+      body.appendChild(row);
+    });
+    card.appendChild(body);
+    wrap.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// 排版模式（localStorage: ccep_layout）
+// ════════════════════════════════════════════════════
+var LAYOUT_KEY  = 'ccep_layout';
+var SECTION_IDS = ['section-summary', 'section-phases', 'section-todo', 'section-links', 'section-notes'];
+var SECTION_LABELS = {
+  'section-summary': '整體完成進度',
+  'section-phases':  'Phase 卡片',
+  'section-todo':    '待辦事項',
+  'section-links':   '重要連結',
+  'section-notes':   '筆記'
+};
+
+function loadLayout() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(LAYOUT_KEY));
+    if (Array.isArray(saved) && saved.length === SECTION_IDS.length &&
+        SECTION_IDS.every(function(id) { return saved.indexOf(id) >= 0; })) {
+      return saved;
+    }
+  } catch(e) {}
+  return SECTION_IDS.slice();
+}
+function saveLayout() {
+  var zone = document.getElementById('layout-zone');
+  var order = [];
+  Array.prototype.forEach.call(zone.children, function(el) {
+    if (el.classList.contains('reorderable')) order.push(el.id);
+  });
+  localStorage.setItem(LAYOUT_KEY, JSON.stringify(order));
+  markDirty();
+}
+function applyLayout() {
+  var order = loadLayout();
+  var zone  = document.getElementById('layout-zone');
+  order.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.parentElement === zone) zone.appendChild(el);
+  });
+}
+
+function toggleLayout() {
+  var btn    = document.getElementById('layout-btn');
+  var active = btn.classList.contains('active');
+
+  if (active) {
+    // 結束排版模式
+    btn.classList.remove('active');
+    btn.textContent = '排版模式';
+    document.querySelectorAll('.layout-toolbar').forEach(function(el) { el.remove(); });
+    saveLayout();
+  } else {
+    // 進入排版模式
+    btn.classList.add('active');
+    btn.textContent = '完成排版';
+    document.querySelectorAll('#layout-zone .reorderable').forEach(function(el) {
+      var tb = document.createElement('div');
+      tb.className = 'layout-toolbar';
+      tb.innerHTML =
+        '<span class="layout-label">' + (SECTION_LABELS[el.id] || el.id) + '</span>' +
+        '<div class="layout-btns">' +
+          '<button class="move-btn" data-id="' + el.id + '" data-dir="-1">↑ 上移</button>' +
+          '<button class="move-btn" data-id="' + el.id + '" data-dir="1">↓ 下移</button>' +
+        '</div>';
+      el.insertBefore(tb, el.firstChild);
+    });
+    document.querySelectorAll('.move-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        moveSection(this.dataset.id, parseInt(this.dataset.dir));
+      });
+    });
+  }
+}
+
+function moveSection(id, dir) {
+  var zone = document.getElementById('layout-zone');
+  var el   = document.getElementById(id);
+  if (!el) return;
+  if (dir === -1) {
+    var prev = el.previousElementSibling;
+    if (prev && prev.classList.contains('reorderable')) zone.insertBefore(el, prev);
+  } else {
+    var next = el.nextElementSibling;
+    if (next && next.classList.contains('reorderable')) zone.insertBefore(next, el);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// 資料載入（data.json → localStorage fallback）
+// ════════════════════════════════════════════════════
+async function loadData() {
+  // 在 file:// 模式下：如果 localStorage 已有資料就跳過（不覆蓋）
+  // 但如果 localStorage 是空的（被蓋掉或第一次使用），就嘗試從 data.json 還原
+  if (location.protocol === 'file:') {
+    var lt = JSON.parse(localStorage.getItem(S_TODOS) || '[]');
+    var ll = JSON.parse(localStorage.getItem(S_LINKS) || '[]');
+    if (lt.length > 0 || ll.length > 0) return;
+    // localStorage 是空的 → 繼續往下嘗試讀 data.json
+  }
+  try {
+    var resp = await fetch('./data.json');
+    if (resp.ok) {
+      var d = await resp.json();
+      if (Array.isArray(d.todos))
+        localStorage.setItem(S_TODOS, JSON.stringify(d.todos));
+      if (Array.isArray(d.links))
+        localStorage.setItem(S_LINKS, JSON.stringify(d.links));
+      if (d.notes && typeof d.notes === 'object')
+        localStorage.setItem(S_NOTES, JSON.stringify(d.notes));
+      if (Array.isArray(d.layout))
+        localStorage.setItem(LAYOUT_KEY, JSON.stringify(d.layout));
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════
+// GitHub 同步
+// ════════════════════════════════════════════════════
+function getToken()  { return localStorage.getItem(S_TOKEN) || ''; }
+function setToken(t) { localStorage.setItem(S_TOKEN, t); }
+
+async function syncToGitHub() {
+  var token = getToken();
+  if (!token) {
+    var t = prompt('請輸入你的 GitHub Personal Access Token：\n（之後會儲存在此裝置，不需要再輸入）');
+    if (!t || !t.trim()) return;
+    setToken(t.trim());
+    token = t.trim();
+  }
+
+  var data = {
+    todos:  JSON.parse(localStorage.getItem(S_TODOS)    || '[]'),
+    links:  JSON.parse(localStorage.getItem(S_LINKS)    || '[]'),
+    notes:  JSON.parse(localStorage.getItem(S_NOTES)    || '{}'),
+    layout: JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null') || SECTION_IDS.slice()
+  };
+
+  var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  var apiUrl  = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/' + GH_FILE;
+  var hdrs    = {
+    'Authorization': 'token ' + token,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+
+  // 先取得目前的 SHA（更新檔案時必須提供）
+  var sha = null;
+  try {
+    var g = await fetch(apiUrl, { headers: hdrs });
+    if (g.ok) sha = (await g.json()).sha;
+  } catch(e) {}
+
+  var syncBtn = document.getElementById('sync-btn');
+  syncBtn.textContent = '同步中...';
+  syncBtn.disabled = true;
+
+  try {
+    var body = {
+      message: '更新進度資料 ' + new Date().toLocaleString('zh-TW'),
+      content: content
+    };
+    if (sha) body.sha = sha;
+
+    var r = await fetch(apiUrl, { method: 'PUT', headers: hdrs, body: JSON.stringify(body) });
+    if (r.ok) {
+      markClean();
+      syncBtn.textContent = '✓ 已同步！';
+      setTimeout(function() {
+        syncBtn.textContent = '同步到 GitHub';
+        syncBtn.disabled = false;
+      }, 3000);
+    } else {
+      var err = await r.json();
+      if (r.status === 401) {
+        alert('Token 無效或已過期，請重新設定。');
+        localStorage.removeItem(S_TOKEN);
+      } else {
+        alert('同步失敗：' + (err.message || r.status));
+      }
+      syncBtn.textContent = '同步到 GitHub';
+      syncBtn.disabled = false;
+    }
+  } catch(e) {
+    alert('網路錯誤：' + e.message);
+    syncBtn.textContent = '同步到 GitHub';
+    syncBtn.disabled = false;
+  }
+}
+
+function setupToken() {
+  var cur = getToken();
+  var msg = cur
+    ? '目前已設定 Token（前 8 碼：' + cur.substring(0, 8) + '...）\n\n要替換請輸入新 Token，要清除請輸入空白，取消請按取消：'
+    : '請輸入你的 GitHub Personal Access Token：';
+  var t = prompt(msg);
+  if (t === null) return;
+  if (!t.trim()) {
+    localStorage.removeItem(S_TOKEN);
+    alert('Token 已清除');
+  } else {
+    setToken(t.trim());
+    alert('Token 已儲存！');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// 待辦事項（localStorage: ccep_todos）
+// ════════════════════════════════════════════════════
+var S_TODOS = 'ccep_todos';
+function loadTodos() {
+  try { return JSON.parse(localStorage.getItem(S_TODOS) || '[]'); } catch(e) { return []; }
+}
+function saveTodos(arr) { localStorage.setItem(S_TODOS, JSON.stringify(arr)); markDirty(); }
+
+function dlBadge(deadline) {
+  if (!deadline) return null;
+  var hasTime = deadline.indexOf('T') >= 0;
+  var d       = new Date(hasTime ? deadline : deadline + 'T00:00:00');
+  var now     = new Date();
+  var dDay    = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var days    = diffDays(today(), dDay);
+  function hhmm(dt) {
+    return String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+  }
+  var cls, text;
+  if (!hasTime) {
+    // 純日期：以天為單位比較
+    if      (days < 0)   { cls = 'overdue'; text = '已過期'; }
+    else if (days === 0) { cls = 'urgent';  text = '今天截止'; }
+    else if (days <= 7)  { cls = 'urgent';  text = days + ' 天後'; }
+    else                 { cls = 'ok';      text = (d.getMonth()+1) + '/' + d.getDate(); }
+  } else {
+    // 含時間：以精確時間比較
+    if      (d < now)    { cls = 'overdue'; text = '已過期'; }
+    else if (days === 0) { cls = 'urgent';  text = '今天 ' + hhmm(d); }
+    else if (days <= 7)  { cls = 'urgent';  text = days + '天後 ' + hhmm(d); }
+    else                 { cls = 'ok';      text = (d.getMonth()+1) + '/' + d.getDate() + ' ' + hhmm(d); }
+  }
+  var sp = document.createElement('span');
+  sp.className = 'todo-deadline ' + cls;
+  sp.textContent = text;
+  return sp;
+}
+function renderTodos() {
+  var todos = loadTodos();
+  var list  = document.getElementById('todo-list');
+  list.innerHTML = '';
+  if (todos.length === 0) {
+    list.innerHTML = '<li class="empty-hint">還沒有待辦事項</li>';
+    return;
+  }
+  todos.forEach(function(t, i) {
+    var li = document.createElement('li');
+    li.className = 'todo-item' + (t.done ? ' done' : '');
+
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = t.done;
+    (function(idx) { cb.addEventListener('change', function() {
+      todos[idx].done = cb.checked; saveTodos(todos); renderTodos();
+    }); })(i);
+
+    var span = document.createElement('span');
+    span.className = 'todo-text'; span.textContent = t.text;
+
+    var badge = dlBadge(t.deadline || '');
+
+    var btn = document.createElement('button');
+    btn.className = 'btn-del'; btn.textContent = '✕';
+    (function(idx) { btn.addEventListener('click', function() {
+      todos.splice(idx, 1); saveTodos(todos); renderTodos();
+    }); })(i);
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit'; editBtn.title = '編輯';
+    editBtn.textContent = '✏';
+    (function(idx, li) {
+      editBtn.addEventListener('click', function() {
+        var t = todos[idx];
+        var dateVal = '', timeVal = '';
+        if (t.deadline && t.deadline.indexOf('T') >= 0) {
+          var p = t.deadline.split('T'); dateVal = p[0]; timeVal = p[1] || '';
+        } else if (t.deadline) { dateVal = t.deadline; }
+        li.className = 'todo-item todo-editing';
+        li.innerHTML = '';
+        var textIn = document.createElement('input');
+        textIn.type = 'text'; textIn.value = t.text; textIn.className = 'todo-edit-text';
+        var dateIn = document.createElement('input');
+        dateIn.type = 'date'; dateIn.value = dateVal; dateIn.className = 'todo-date-in';
+        var timeIn = document.createElement('input');
+        timeIn.type = 'text'; timeIn.value = timeVal;
+        timeIn.className = 'todo-time-in'; timeIn.placeholder = 'HH:MM'; timeIn.maxLength = 5;
+        var saveBtn = document.createElement('button');
+        saveBtn.className = 'btn-add'; saveBtn.textContent = '儲存';
+        saveBtn.addEventListener('click', function() {
+          var newText = textIn.value.trim();
+          if (!newText) { alert('名稱不能為空'); return; }
+          var tv = timeIn.value.trim();
+          var dl = '';
+          if (dateIn.value && tv) dl = dateIn.value + 'T' + tv;
+          else if (dateIn.value) dl = dateIn.value;
+          todos[idx].text = newText;
+          todos[idx].deadline = dl;
+          saveTodos(todos); renderTodos();
+        });
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-del'; cancelBtn.textContent = '✕';
+        cancelBtn.addEventListener('click', function() { renderTodos(); });
+        li.appendChild(textIn); li.appendChild(dateIn); li.appendChild(timeIn);
+        li.appendChild(saveBtn); li.appendChild(cancelBtn);
+        textIn.focus();
+      });
+    })(i, li);
+
+    li.appendChild(cb); li.appendChild(span);
+    if (badge) li.appendChild(badge);
+    li.appendChild(editBtn); li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+function addTodo() {
+  var input   = document.getElementById('todo-input');
+  var dateIn  = document.getElementById('todo-date');
+  var timeIn  = document.getElementById('todo-time');
+  var text    = input.value.trim();
+  if (!text) return;
+  var timeVal  = timeIn.value.trim();
+  if (timeVal && !/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(timeVal)) {
+    alert('時間格式錯誤，請輸入 HH:MM，例如 21:00');
+    return;
+  }
+  var deadline = '';
+  if (dateIn.value && timeVal) deadline = dateIn.value + 'T' + timeVal;
+  else if (dateIn.value)       deadline = dateIn.value;
+  var todos = loadTodos();
+  todos.push({ text: text, done: false, deadline: deadline });
+  saveTodos(todos);
+  input.value  = '';
+  dateIn.value = '';
+  timeIn.value = '';
+  renderTodos();
+}
+document.getElementById('todo-add').addEventListener('click', addTodo);
+document.getElementById('todo-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') addTodo();
+});
+
+// ════════════════════════════════════════════════════
+// 重要連結（localStorage: ccep_links）
+// ════════════════════════════════════════════════════
+var S_LINKS = 'ccep_links';
+function loadLinks() {
+  try { return JSON.parse(localStorage.getItem(S_LINKS) || '[]'); } catch(e) { return []; }
+}
+function saveLinks(arr) { localStorage.setItem(S_LINKS, JSON.stringify(arr)); markDirty(); }
+
+function renderLinks() {
+  var links = loadLinks();
+  var list  = document.getElementById('link-list');
+  list.innerHTML = '';
+  if (links.length === 0) {
+    list.innerHTML = '<div class="empty-hint">還沒有連結</div>';
+    return;
+  }
+  links.forEach(function(l, i) {
+    var item = document.createElement('div');
+    item.className = 'link-item';
+
+    var a = document.createElement('a');
+    a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.name || l.url;
+
+    var urlSpan = document.createElement('span');
+    urlSpan.className = 'link-url-text'; urlSpan.textContent = l.url;
+
+    var btn = document.createElement('button');
+    btn.className = 'btn-del'; btn.textContent = '✕';
+    (function(idx) { btn.addEventListener('click', function() {
+      links.splice(idx, 1); saveLinks(links); renderLinks();
+    }); })(i);
+
+    var editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit'; editBtn.title = '編輯';
+    editBtn.textContent = '✏';
+    (function(idx, item) {
+      editBtn.addEventListener('click', function() {
+        var l = links[idx];
+        item.className = 'link-item todo-editing';
+        item.innerHTML = '';
+        var nameIn = document.createElement('input');
+        nameIn.type = 'text'; nameIn.value = l.name === l.url ? '' : (l.name || '');
+        nameIn.className = 'todo-edit-text'; nameIn.placeholder = '顯示名稱（可留空）';
+        var urlIn = document.createElement('input');
+        urlIn.type = 'text'; urlIn.value = l.url;
+        urlIn.className = 'todo-edit-text'; urlIn.placeholder = '網址 https://...';
+        var saveBtn = document.createElement('button');
+        saveBtn.className = 'btn-add'; saveBtn.textContent = '儲存';
+        saveBtn.addEventListener('click', function() {
+          var newUrl = urlIn.value.trim();
+          if (!newUrl) { alert('網址不能為空'); return; }
+          if (newUrl.indexOf('://') < 0) newUrl = 'https://' + newUrl;
+          var newName = nameIn.value.trim();
+          links[idx].name = newName || newUrl;
+          links[idx].url = newUrl;
+          saveLinks(links); renderLinks();
+        });
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-del'; cancelBtn.textContent = '✕';
+        cancelBtn.addEventListener('click', function() { renderLinks(); });
+        item.appendChild(nameIn); item.appendChild(urlIn);
+        item.appendChild(saveBtn); item.appendChild(cancelBtn);
+        nameIn.focus();
+      });
+    })(i, item);
+
+    item.appendChild(a); item.appendChild(urlSpan); item.appendChild(editBtn); item.appendChild(btn);
+    list.appendChild(item);
+  });
+}
+function addLink() {
+  var url  = document.getElementById('link-url-in').value.trim();
+  var name = document.getElementById('link-name-in').value.trim();
+  if (!url) return;
+  if (url.indexOf('://') < 0) url = 'https://' + url;
+  var links = loadLinks();
+  links.push({ name: name || url, url: url });
+  saveLinks(links);
+  document.getElementById('link-name-in').value = '';
+  document.getElementById('link-url-in').value  = '';
+  renderLinks();
+}
+document.getElementById('link-add').addEventListener('click', addLink);
+document.getElementById('link-url-in').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') addLink();
+});
+
+// ════════════════════════════════════════════════════
+// 筆記（localStorage: ccep_notes）
+// ════════════════════════════════════════════════════
+var S_NOTES = 'ccep_notes';
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem(S_NOTES) || '{}'); } catch(e) { return {}; }
+}
+function saveNote(key, val) {
+  var notes = loadNotes(); notes[key] = val;
+  localStorage.setItem(S_NOTES, JSON.stringify(notes));
+  markDirty();
+}
+function makeNoteCard(key, title, badge, isCurrent) {
+  var notes = loadNotes();
+  var card  = document.createElement('div');
+  card.className = 'note-card' + (isCurrent ? ' current expanded' : '');
+
+  var head = document.createElement('div');
+  head.className = 'note-card-head';
+  head.innerHTML =
+    '<span class="note-card-title">' + title + '</span>' +
+    (badge ? '<span class="note-card-badge">' + badge + '</span>' : '') +
+    '<span class="note-card-chevron">▾</span>';
+  head.addEventListener('click', function() { card.classList.toggle('expanded'); });
+
+  var body = document.createElement('div');
+  body.className = 'note-card-body';
+  var ta = document.createElement('textarea');
+  ta.className = 'note-area';
+  ta.dataset.key = key;
+  ta.placeholder = '在這裡輸入筆記...';
+  ta.value = notes[key] || '';
+  ta.addEventListener('input', function() { saveNote(key, ta.value); });
+  body.appendChild(ta);
+
+  card.appendChild(head); card.appendChild(body);
+  return card;
+}
+function renderNotes() {
+  var week = currentWeekNum();
+  var grid = document.getElementById('notes-grid');
+  grid.innerHTML = '';
+
+  var weekLbl = document.createElement('div');
+  weekLbl.className = 'notes-section-label';
+  weekLbl.textContent = '週次 Meeting 筆記';
+  grid.appendChild(weekLbl);
+
+  MEETINGS.forEach(function(m) {
+    var isCurrent = (m.week === week);
+    var card = makeNoteCard(
+      m.key,
+      m.label + '（第' + m.week + '週）',
+      isCurrent ? '本週' : '',
+      isCurrent
+    );
+    grid.appendChild(card);
+  });
+
+  var msLbl = document.createElement('div');
+  msLbl.className = 'notes-section-label';
+  msLbl.textContent = '月報告 ＆ 期末成果';
+  grid.appendChild(msLbl);
+
+  MILESTONE_NOTES.forEach(function(m) {
+    grid.appendChild(makeNoteCard(m.key, m.label, '', false));
+  });
+}
+
+// ── 初始化 ───────────────────────────────────────────
+(async function init() {
+  renderDates();
+  renderStats();
+  renderPhases();
+  await loadData();   // 先從 data.json 同步到 localStorage
+  applyLayout();      // 之後才套用排版（可能來自 data.json）
+  renderTodos();
+  renderLinks();
+  renderNotes();
+})();
+</script>
+</body>
+</html>

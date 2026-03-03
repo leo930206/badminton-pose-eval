@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Claude workspace
+.claude/
+
+# 大型資料集（下載後的教學影片）
+datasets/raw/
+
+# 產生的輸出（每次執行都會重建）
+output/
+
+# 系統
+.DS_Store
+Thumbs.db
