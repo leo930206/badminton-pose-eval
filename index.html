@@ -388,8 +388,8 @@ body {
     padding: 10px 14px;
   }
   .hdr-spacer { display: none; }
-  .hdr-center { flex: none; text-align: left; }
-  .hdr-center h1 { font-size: 14px; }
+  .hdr-center { flex: none; text-align: center; padding-bottom: 6px; }
+  .hdr-center h1 { font-size: 17px; }
   .hdr-center p  { font-size: 11px; }
   .hdr-right {
     flex: none;
@@ -404,10 +404,14 @@ body {
   /* 主內容左右間距收窄 */
   .wrap { padding: 12px 10px; }
 
-  /* 日期資訊欄：垂直疊 */
-  .info-top { flex-direction: column; gap: 8px; }
-  .info-col { padding-right: 0 !important; padding-left: 0 !important; border-left: none !important; }
-  .info-col + .info-col { border-top: 1px solid var(--border2); padding-top: 8px; }
+  /* 日期資訊欄：左右並排兩格，各自獨立 */
+  .info-top { flex-direction: row; gap: 0; }
+  .info-col { flex: 1; padding-right: 12px !important; padding-left: 0 !important; border-left: none !important; }
+  .info-col + .info-col { padding-left: 12px !important; padding-right: 0 !important; border-left: 1px solid var(--border2) !important; }
+
+  /* 預計完成日：倒數移到標籤右側 */
+  .info-col:last-child { position: relative; }
+  #deadline-cd { position: absolute; top: 0; right: 0; font-size: 11px; }
 
   /* 里程碑：4欄 → 1欄（逐條顯示） */
   .milestone-row { grid-template-columns: 1fr; gap: 8px; }
@@ -418,10 +422,6 @@ body {
 
   /* 手機專用按鈕（刷新）顯示 */
   .mobile-only { display: inline-flex; }
-
-  /* 預計完成日：倒數移到「預計完成日」標籤右側 */
-  .info-col:last-child { position: relative; }
-  #deadline-cd { position: absolute; top: 0; right: 0; font-size: 12px; }
 
   /* 總進度卡：水平 → 垂直 */
   .summary { flex-direction: column; align-items: flex-start; gap: 12px; }
