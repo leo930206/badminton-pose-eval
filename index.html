@@ -1400,14 +1400,12 @@ function moveSection(id, dir) {
 // 資料載入（data.json → localStorage fallback）
 // ════════════════════════════════════════════════════
 async function loadData() {
-  // 在 file:// 模式下：如果 localStorage 已有資料就跳過（不覆蓋）
-  // 但如果 localStorage 是空的（被蓋掉或第一次使用），就嘗試從 data.json 還原
-  if (location.protocol === 'file:') {
-    var lt = JSON.parse(localStorage.getItem(S_TODOS) || '[]');
-    var ll = JSON.parse(localStorage.getItem(S_LINKS) || '[]');
-    if (lt.length > 0 || ll.length > 0) return;
-    // localStorage 是空的 → 繼續往下嘗試讀 data.json
-  }
+  // 不論 file:// 或 https://，localStorage 已有資料就跳過（不覆蓋）
+  // 新裝置第一次開啟（localStorage 空的）才從 data.json 載入
+  var lt = JSON.parse(localStorage.getItem(S_TODOS) || '[]');
+  var ll = JSON.parse(localStorage.getItem(S_LINKS) || '[]');
+  if (lt.length > 0 || ll.length > 0) return;
+  // localStorage 是空的 → 繼續往下嘗試讀 data.json
   try {
     var resp = await fetch('./data.json');
     if (resp.ok) {
@@ -1536,13 +1534,13 @@ function dlBadge(deadline) {
   var cls, text;
   if (!hasTime) {
     // 純日期：以天為單位比較
-    if      (days < 0)   { cls = 'overdue'; text = '已過期'; }
+    if      (days < 0)   { cls = 'overdue'; text = '已過期 ' + (d.getMonth()+1) + '/' + d.getDate(); }
     else if (days === 0) { cls = 'urgent';  text = '今天截止'; }
     else if (days <= 7)  { cls = 'urgent';  text = days + ' 天後'; }
     else                 { cls = 'ok';      text = (d.getMonth()+1) + '/' + d.getDate(); }
   } else {
     // 含時間：以精確時間比較
-    if      (d < now)    { cls = 'overdue'; text = '已過期'; }
+    if      (d < now)    { cls = 'overdue'; text = '已過期 ' + (d.getMonth()+1) + '/' + d.getDate(); }
     else if (days === 0) { cls = 'urgent';  text = '今天 ' + hhmm(d); }
     else if (days <= 7)  { cls = 'urgent';  text = days + '天後 ' + hhmm(d); }
     else                 { cls = 'ok';      text = (d.getMonth()+1) + '/' + d.getDate() + ' ' + hhmm(d); }
