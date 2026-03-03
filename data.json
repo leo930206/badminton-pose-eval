@@ -1,15 +1,45 @@
 {
   "todos": [
-    {"text": "指導老師志願表", "done": false, "deadline": ""},
-    {"text": "提案報告書", "done": false, "deadline": ""},
-    {"text": "解釋 VScode 左邊一堆檔案，可以分類嗎？", "done": false, "deadline": ""}
+    {
+      "text": "指導老師志願表",
+      "done": false,
+      "deadline": ""
+    },
+    {
+      "text": "提案報告書",
+      "done": false,
+      "deadline": ""
+    },
+    {
+      "text": "解釋 VScode 左邊一堆檔案，可以分類嗎？",
+      "done": false,
+      "deadline": ""
+    }
   ],
   "links": [
-    {"name": "Gemini 專題秘書", "url": "https://gemini.google.com/app/0af9ad9bb0daa2d4?hl=zh-TW"},
-    {"name": "Moodle 畢業專題", "url": "https://moodle.ncku.edu.tw/course/view.php?id=52354"},
-    {"name": "114-2 不分系專題說明手冊", "url": "https://docs.google.com/document/d/1s9kQvjymGXYmjX-CKnRGGuJMSFXaulzQYDQeN8N6mZk/edit?tab=t.0#heading=h.qqf6bsr36kp5"},
-    {"name": "期初專題提案書", "url": "file:///C:/Users/llleo/Downloads/AN4114011_%E5%AE%98%E8%A3%95%E5%AE%B8.pdf"}
+    {
+      "name": "Gemini 專題秘書",
+      "url": "https://gemini.google.com/app/0af9ad9bb0daa2d4?hl=zh-TW"
+    },
+    {
+      "name": "Moodle 畢業專題",
+      "url": "https://moodle.ncku.edu.tw/course/view.php?id=52354"
+    },
+    {
+      "name": "114-2 不分系專題說明手冊",
+      "url": "https://docs.google.com/document/d/1s9kQvjymGXYmjX-CKnRGGuJMSFXaulzQYDQeN8N6mZk/edit?tab=t.0#heading=h.qqf6bsr36kp5"
+    },
+    {
+      "name": "期初專題提案書",
+      "url": "file:///C:/Users/llleo/Downloads/AN4114011_%E5%AE%98%E8%A3%95%E5%AE%B8.pdf"
+    }
   ],
   "notes": {},
-  "layout": ["section-todo", "section-links", "section-notes", "section-summary", "section-phases"]
+  "layout": [
+    "section-todo",
+    "section-links",
+    "section-notes",
+    "section-summary",
+    "section-phases"
+  ]
 }
