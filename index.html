@@ -409,6 +409,14 @@ body {
   /* 里程碑：4欄 → 1欄（逐條顯示） */
   .milestone-row { grid-template-columns: 1fr; gap: 8px; }
 
+  /* 里程碑卡片：倒數移到右上角 */
+  .milestone { position: relative; padding-right: 90px; }
+  .ms-cd { position: absolute; top: 12px; right: 14px; text-align: right; }
+
+  /* 預計完成日：倒數移到右上角 */
+  .info-panel { position: relative; }
+  #deadline-cd { position: absolute; top: 16px; right: 20px; font-size: 13px; }
+
   /* 總進度卡：水平 → 垂直 */
   .summary { flex-direction: column; align-items: flex-start; gap: 12px; }
   .stat-row { flex-wrap: wrap; gap: 12px; }
