@@ -12,6 +12,9 @@ env/
 # 大型資料集（下載後的教學影片）
 datasets/raw/
 
+# TrackNetV3（含 130MB 模型檔，需手動安裝，詳見 README）
+tracknet/
+
 # 產生的輸出（每次執行都會重建）
 output/
 
