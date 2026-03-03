@@ -125,6 +125,16 @@ def get_advice_from_diffs(joint_diffs: dict, top_n: int = 2) -> list:
     return advice
 
 
+# 動作中文名稱 → 模板資料夾英文名稱的對應
+_ACTION_FOLDER = {
+    "殺球":  "smash",
+    "高遠球": "clear",
+    "吊球":  "drop",
+    "平抽球": "drive",
+    "切球":  "cut",
+}
+
+
 class DTWScorer:
     """
     DTW 評分器主類別。
@@ -139,11 +149,11 @@ class DTWScorer:
 
     def _load_templates(self, action_type: str) -> list:
         """載入並快取某動作類型的所有模板。"""
-        key = action_type.lower()
-        if key in self._cache:
-            return self._cache[key]
+        folder = _ACTION_FOLDER.get(action_type, action_type).lower()
+        if folder in self._cache:
+            return self._cache[folder]
 
-        action_dir = os.path.join(self.templates_dir, key)
+        action_dir = os.path.join(self.templates_dir, folder)
         templates = []
         if os.path.isdir(action_dir):
             for filename in sorted(os.listdir(action_dir)):
@@ -155,7 +165,7 @@ class DTWScorer:
                     except (json.JSONDecodeError, OSError):
                         continue
 
-        self._cache[key] = templates
+        self._cache[folder] = templates
         return templates
 
     def score(self, action_type: str, query_frames: list):

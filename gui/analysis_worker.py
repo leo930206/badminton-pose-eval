@@ -8,6 +8,7 @@
   Pass 2（50-100%）：MediaPipe 骨架分析 + 動作辨識
 """
 
+import time
 from collections import deque
 
 import cv2
@@ -44,26 +45,29 @@ class AnalysisWorker(QThread):
 
     信號說明：
         frame_ready    每幀處理完後發出（含骨架 + 球軌跡的畫面）
-        action_found   偵測到動作時發出
+        action_found   偵測到動作時發出（含時間戳記）
         stats_updated  每幀更新即時狀態 (wrist_speed, context, counts, ball_speed)
         progress       進度更新 (current, total)
+        frame_progress Pass 2 逐幀進度 (frame_idx, total_frames)，供時間軸使用
         status_msg     狀態文字更新
-        finished_ok    分析完成，附帶 event_log 和影片總時長
+        finished_ok    分析完成（event_log, total_ms, ball_positions, total_frames）
         error          發生錯誤
     """
 
-    frame_ready   = pyqtSignal(np.ndarray)
-    action_found  = pyqtSignal(str, object, list)
-    stats_updated = pyqtSignal(float, str, dict, float)   # +ball_speed
-    progress      = pyqtSignal(int, int)
-    status_msg    = pyqtSignal(str)
-    finished_ok   = pyqtSignal(list, int)
-    error         = pyqtSignal(str)
+    frame_ready    = pyqtSignal(np.ndarray)
+    action_found   = pyqtSignal(str, object, list, int)   # +timestamp_ms
+    stats_updated  = pyqtSignal(float, str, dict, float)
+    progress       = pyqtSignal(int, int)
+    frame_progress = pyqtSignal(int, int)                  # frame_idx, total_frames
+    status_msg     = pyqtSignal(str)
+    finished_ok    = pyqtSignal(list, int, dict, int)      # +ball_positions, total_frames
+    error          = pyqtSignal(str)
 
-    def __init__(self, video_path: str, parent=None):
+    def __init__(self, video_path: str, normal_speed: bool = False, parent=None):
         super().__init__(parent)
-        self.video_path = video_path
-        self._stop_flag = False
+        self.video_path   = video_path
+        self.normal_speed = normal_speed
+        self._stop_flag   = False
 
     def stop(self):
         self._stop_flag = True
@@ -105,13 +109,14 @@ class AnalysisWorker(QThread):
             pass    # TrackNet 失敗時以空字典繼續，不中斷整體分析
 
         if self._stop_flag:
-            self.finished_ok.emit([], 0)
+            self.finished_ok.emit([], 0, {}, 0)
             return
 
         self.progress.emit(total_frames, total_frames * 2)
 
         # ── Pass 2：骨架分析（進度 50 → 100%）──
         self.status_msg.emit("正在分析動作（Pass 2/2）…")
+        self.frame_progress.emit(0, total_frames)
 
         options    = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=MODEL_PATH),
@@ -133,6 +138,8 @@ class AnalysisWorker(QThread):
         cap = cv2.VideoCapture(self.video_path)
 
         while cap.isOpened() and not self._stop_flag:
+            _t0 = time.perf_counter() if self.normal_speed else 0.0
+
             ret, frame = cap.read()
             if not ret:
                 break
@@ -199,7 +206,7 @@ class AnalysisWorker(QThread):
                         "advice":       advice,
                     }
                     event_log.append(record)
-                    self.action_found.emit(current_action, dtw_score, advice)
+                    self.action_found.emit(current_action, dtw_score, advice, features["timestamp_ms"])
 
                 # 繪製骨架
                 color = (0, 255, 0)
@@ -224,13 +231,20 @@ class AnalysisWorker(QThread):
             self.stats_updated.emit(instant_speed, context, dict(action_counts), ball_speed)
             self.frame_ready.emit(frame)
             self.progress.emit(total_frames + frame_idx, total_frames * 2)
+            self.frame_progress.emit(frame_idx, total_frames)
             frame_idx += 1
+
+            # 正常速度模式：計算剩餘時間並等待
+            if self.normal_speed:
+                wait = 1.0 / fps - (time.perf_counter() - _t0)
+                if wait > 0.001:
+                    time.sleep(wait)
 
         landmarker.close()
         cap.release()
 
         total_ms = int(frame_idx * 1000 / fps)
-        self.finished_ok.emit(event_log, total_ms)
+        self.finished_ok.emit(event_log, total_ms, ball_positions, total_frames)
 
 
 # ══════════════════════════════════════════════

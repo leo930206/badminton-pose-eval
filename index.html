@@ -1284,8 +1284,8 @@ function renderPhases() {
     var phDone  = ph.tasks.filter(function(t) { return t.status === '✅'; }).length;
     var phTotal = ph.tasks.length;
     var phPct   = phTotal ? Math.round(phDone / phTotal * 100) : 0;
-    var cls     = ph.status === '✅' ? 'd' : ph.status === '⏳' ? 'p' : 't';
-    var barCol  = ph.status === '✅' ? '#1a7f37' : ph.status === '⏳' ? '#0969da' : '#d0d7de';
+    var cls     = ph.status === '✅' ? 'd' : (phDone > 0 ? 'p' : 't');
+    var barCol  = ph.status === '✅' ? '#1a7f37' : (phDone > 0 ? '#0969da' : '#d0d7de');
 
     var card = document.createElement('div');
     card.className = 'phase' + (ph.status === 'x' ? ' collapsed' : '');
