@@ -404,9 +404,69 @@ body {
 .title-short { display: none; }
 
 /* ── 觸控裝置（iPad / 平板，寬 ≥ 601px）── */
+/* 用明確的 font-size 覆寫取代 zoom（Safari 的 zoom 只縮版面，不縮字體）*/
 @media (pointer: coarse) and (min-width: 601px) {
   .mobile-only { display: inline-flex; }
-  body { zoom: 1.953125; }   /* 1.5625 × 1.25，在桌機 1.5625x 基礎上再放大 */
+
+  /* 基礎：body 14px → 24px（×1.75） */
+  body { font-size: 24px; }
+
+  /* Header */
+  .hdr-center h1  { font-size: 35px; }
+  .hdr-center p   { font-size: 21px; }
+  .hdr-pct        { font-size: 23px; }
+  .layout-btn     { font-size: 21px; }
+
+  /* 日期資訊面板 */
+  .info-label     { font-size: 18px; }
+  .info-date      { font-size: 30px; }
+  .info-sub, .info-countdown { font-size: 21px; }
+
+  /* 里程碑 */
+  .ms-title { font-size: 26px; }
+  .ms-meta, .ms-cd { font-size: 19px; }
+
+  /* 總進度圓環 */
+  .circ-pct { font-size: 26px; }
+  .stats h3 { font-size: 24px; }
+  .stat     { font-size: 23px; }
+  .stat-n   { font-size: 32px; }
+
+  /* Phase 卡片 */
+  .ph-badge   { font-size: 19px; }
+  .ph-title   { font-size: 23px; }
+  .ph-sub     { font-size: 19px; }
+  .ph-pct     { font-size: 21px; }
+  .ph-chevron { font-size: 19px; }
+  .sec-lbl    { font-size: 18px; }
+
+  /* 任務列 */
+  .task-icon, .task-text { font-size: 23px; }
+
+  /* Section 通用面板 */
+  .section-title, .section-chevron { font-size: 23px; }
+
+  /* 待辦 */
+  input, textarea, select { font-size: 23px; }
+  .btn-add    { font-size: 23px; }
+  .todo-text  { font-size: 23px; }
+  .btn-del    { font-size: 23px; }
+  .btn-edit   { font-size: 21px; }
+  .empty-hint { font-size: 23px; }
+  .due-badge  { font-size: 19px; }
+
+  /* 重要連結 */
+  .link-name, .link-url-text { font-size: 23px; }
+  .link-date, .link-key      { font-size: 18px; }
+
+  /* 筆記 */
+  .note-card-title  { font-size: 21px; }
+  .note-card-chevron { font-size: 18px; }
+  .subnote-name, .subnote-del, .add-subnote-btn { font-size: 21px; }
+  .subnote-chevron  { font-size: 18px; }
+
+  /* Footer */
+  .footer { font-size: 19px; }
 }
 
 /* ── Footer ── */
