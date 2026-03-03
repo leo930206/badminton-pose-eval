@@ -1,8 +1,6 @@
 # Badminton Pose Evaluation System
 ### 基於電腦視覺之羽球動作辨識與評估系統
 
-> 成功大學 NCKU｜1142 不分系整合專題｜官裕宸
-
 ---
 
 ## 專案簡介
