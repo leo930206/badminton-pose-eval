@@ -61,20 +61,23 @@ class MainWindow(QMainWindow):
         self.btn_open.clicked.connect(self._on_open)
 
         self.btn_start = QPushButton("開始分析")
+        self.btn_start.setObjectName("btn_start")
         self.btn_start.setFixedHeight(36)
         self.btn_start.setEnabled(False)
         self.btn_start.clicked.connect(self._on_start)
 
         self.btn_stop = QPushButton("停止")
+        self.btn_stop.setObjectName("btn_stop")
         self.btn_stop.setFixedHeight(36)
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self._on_stop)
 
         self.progress_bar = QProgressBar()
-        self.progress_bar.setFixedHeight(20)
+        self.progress_bar.setFixedHeight(6)
         self.progress_bar.setValue(0)
 
         self.lbl_status = QLabel("請選擇影片")
+        self.lbl_status.setObjectName("lbl_status")
         self.lbl_status.setFixedHeight(36)
         self.lbl_status.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
@@ -90,8 +93,8 @@ class MainWindow(QMainWindow):
 
         # 左：影片畫面
         self.video_label = QLabel("尚未載入影片")
+        self.video_label.setObjectName("video_label")
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.video_label.setStyleSheet("background-color: #1a1a1a; color: #888;")
         self.video_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -103,14 +106,66 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(4, 0, 0, 0)
         right_layout.setSpacing(4)
 
-        lbl_live = QLabel("即時偵測紀錄")
-        lbl_live.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        # ── 即時狀態卡片 ──
+        lbl_stats = QLabel("即時狀態")
+        lbl_stats.setObjectName("lbl_section")
+        right_layout.addWidget(lbl_stats)
+
+        stats_card = QFrame()
+        stats_card.setObjectName("stats_card")
+        card_layout = QVBoxLayout(stats_card)
+        card_layout.setContentsMargins(12, 10, 12, 10)
+        card_layout.setSpacing(6)
+
+        # 手腕速度 row
+        row_speed = QHBoxLayout()
+        lbl_speed_key = QLabel("手腕速度")
+        lbl_speed_key.setObjectName("stat_key")
+        self.lbl_speed_val = QLabel("—")
+        self.lbl_speed_val.setObjectName("stat_val")
+        row_speed.addWidget(lbl_speed_key)
+        row_speed.addStretch()
+        row_speed.addWidget(self.lbl_speed_val)
+        card_layout.addLayout(row_speed)
+
+        # 動作狀態 row
+        row_ctx = QHBoxLayout()
+        lbl_ctx_key = QLabel("動作狀態")
+        lbl_ctx_key.setObjectName("stat_key")
+        self.lbl_ctx_val = QLabel("—")
+        self.lbl_ctx_val.setObjectName("stat_val")
+        row_ctx.addWidget(lbl_ctx_key)
+        row_ctx.addStretch()
+        row_ctx.addWidget(self.lbl_ctx_val)
+        card_layout.addLayout(row_ctx)
+
+        card_sep = QFrame()
+        card_sep.setFrameShape(QFrame.Shape.HLine)
+        card_layout.addWidget(card_sep)
+
+        # 動作計數 badges
+        counts_row = QHBoxLayout()
+        counts_row.setSpacing(6)
+        self.count_labels = {}
+        for name in ["殺球", "高遠球", "吊球", "平抽球", "切球"]:
+            badge = QLabel(f"{name}\n0")
+            badge.setObjectName("stat_count")
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            counts_row.addWidget(badge)
+            self.count_labels[name] = badge
+        card_layout.addLayout(counts_row)
+
+        right_layout.addWidget(stats_card)
+
+        # ── 偵測紀錄 ──
+        lbl_live = QLabel("偵測紀錄")
+        lbl_live.setObjectName("lbl_section")
         right_layout.addWidget(lbl_live)
 
         self.live_log = QTextEdit()
         self.live_log.setReadOnly(True)
         self.live_log.setFont(QFont("Courier New", 9))
-        self.live_log.setFixedHeight(220)
+        self.live_log.setFixedHeight(150)
         right_layout.addWidget(self.live_log)
 
         separator = QFrame()
@@ -118,7 +173,7 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(separator)
 
         lbl_report = QLabel("整場報告")
-        lbl_report.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        lbl_report.setObjectName("lbl_section")
         right_layout.addWidget(lbl_report)
 
         self.report_box = QTextEdit()
@@ -161,9 +216,15 @@ class MainWindow(QMainWindow):
         self.btn_open.setEnabled(False)
         self.lbl_status.setText("分析中...")
 
+        self.lbl_speed_val.setText("—")
+        self.lbl_ctx_val.setText("—")
+        for name, lbl in self.count_labels.items():
+            lbl.setText(f"{name}\n0")
+
         self._worker = AnalysisWorker(self._video_path)
         self._worker.frame_ready.connect(self._on_frame)
         self._worker.action_found.connect(self._on_action)
+        self._worker.stats_updated.connect(self._on_stats)
         self._worker.progress.connect(self._on_progress)
         self._worker.finished_ok.connect(self._on_finished)
         self._worker.error.connect(self._on_error)
@@ -192,6 +253,15 @@ class MainWindow(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation,
             )
         )
+
+    _CTX_ZH = {"offense": "進攻", "defense": "防守", "neutral": "待機"}
+
+    def _on_stats(self, speed: float, context: str, counts: dict):
+        """每幀更新即時狀態卡片。"""
+        self.lbl_speed_val.setText(f"{speed:.2f}")
+        self.lbl_ctx_val.setText(self._CTX_ZH.get(context, context))
+        for name, lbl in self.count_labels.items():
+            lbl.setText(f"{name}\n{counts.get(name, 0)}")
 
     def _on_action(self, action: str, dtw_score, advice: list):
         """每偵測到一個動作，在即時紀錄區新增一行。"""

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>1142 不分系專題 進度管理工具</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏸%3C/text%3E%3C/svg%3E">
 <style>
 :root {
   --bg:      #f6f8fa;
@@ -766,7 +767,7 @@ const PHASES = [
   {
     "id": "p3",
     "num": 3,
-    "status": "⏳",
+    "status": "🔧",
     "title": "Phase 3｜Week 8–12｜DTW 比對評分核心演算法",
     "tasks": [
       {
@@ -865,7 +866,7 @@ const PHASES = [
   {
     "id": "p4",
     "num": 4,
-    "status": "⏳",
+    "status": "🔧",
     "title": "Phase 4｜Week 13–15｜GUI 介面整合與系統測試",
     "tasks": [
       {
@@ -941,28 +942,28 @@ const PHASES = [
       {
         "id": "t4_7",
         "text": "測試分析進度條是否正確更新",
-        "status": "x",
+        "status": "✅",
         "section": "系統整合測試",
         "indent": 0
       },
       {
         "id": "t4_8",
         "text": "測試影片結束後報告是否正確顯示",
-        "status": "x",
+        "status": "✅",
         "section": "系統整合測試",
         "indent": 0
       },
       {
         "id": "t4_9",
         "text": "測試「停止」按鈕是否能正確中斷分析",
-        "status": "x",
+        "status": "✅",
         "section": "系統整合測試",
         "indent": 0
       },
       {
         "id": "t4_10",
         "text": "測試沒有 DTW 模板的情況下是否顯示 N/A 而不是崩潰",
-        "status": "x",
+        "status": "✅",
         "section": "系統整合測試",
         "indent": 0
       },
@@ -1755,7 +1756,24 @@ function renderLinks() {
       });
     })(i, item);
 
-    item.appendChild(a); item.appendChild(urlSpan); item.appendChild(editBtn); item.appendChild(btn);
+    // ↑ / ↓ 排序按鈕
+    var upBtn = document.createElement('button');
+    upBtn.className = 'move-btn'; upBtn.textContent = '↑'; upBtn.title = '上移';
+    upBtn.disabled = (i === 0);
+    (function(idx) { upBtn.addEventListener('click', function() {
+      var tmp = links[idx - 1]; links[idx - 1] = links[idx]; links[idx] = tmp;
+      saveLinks(links); renderLinks();
+    }); })(i);
+
+    var downBtn = document.createElement('button');
+    downBtn.className = 'move-btn'; downBtn.textContent = '↓'; downBtn.title = '下移';
+    downBtn.disabled = (i === links.length - 1);
+    (function(idx) { downBtn.addEventListener('click', function() {
+      var tmp = links[idx + 1]; links[idx + 1] = links[idx]; links[idx] = tmp;
+      saveLinks(links); renderLinks();
+    }); })(i);
+
+    item.appendChild(a); item.appendChild(urlSpan); item.appendChild(upBtn); item.appendChild(downBtn); item.appendChild(editBtn); item.appendChild(btn);
     list.appendChild(item);
   });
 }

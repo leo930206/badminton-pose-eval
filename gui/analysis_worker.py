@@ -15,7 +15,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from badminton.classification.detector import ActionDetector
 from badminton.data.logger import log_event
 from badminton.data.sequence_buffer import SequenceBuffer
-from badminton.display.renderer import draw_landmarks, draw_text_lines
+from badminton.display.renderer import draw_landmarks
 from badminton.pose.model_loader import ensure_model
 from badminton.pose.tracker import MotionTracker
 from badminton.scoring.dtw_scorer import DTWScorer
@@ -41,6 +41,7 @@ class AnalysisWorker(QThread):
 
     frame_ready  = pyqtSignal(np.ndarray)
     action_found = pyqtSignal(str, object, list)   # (action, dtw_score_or_None, advice)
+    stats_updated = pyqtSignal(float, str, dict)   # (wrist_speed, context, action_counts)
     progress     = pyqtSignal(int, int)             # (current_frame, total_frames)
     finished_ok  = pyqtSignal(list, int)            # (event_log, total_ms)
     error        = pyqtSignal(str)
@@ -83,7 +84,7 @@ class AnalysisWorker(QThread):
         seq_buffer   = SequenceBuffer(maxlen=90)
         dtw_scorer   = DTWScorer(TEMPLATES_DIR)
         event_log    = []
-        action_counts = {n: 0 for n in ["Smash", "Clear", "Drop", "Drive", "Cut"]}
+        action_counts = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球"]}
         frame_idx    = 0
 
         while cap.isOpened() and not self._stop_flag:
@@ -165,20 +166,7 @@ class AnalysisWorker(QThread):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA,
                 )
 
-            draw_text_lines(
-                frame,
-                [f"Speed: {instant_speed:.2f}", f"Context: {context}"],
-                (10, 30), (255, 255, 255), 0.7, 2,
-            )
-
-            counts_line = " | ".join(
-                f"{n}:{c}" for n, c in action_counts.items()
-            )
-            cv2.putText(
-                frame, counts_line, (10, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA,
-            )
-
+            self.stats_updated.emit(instant_speed, context, dict(action_counts))
             self.frame_ready.emit(frame)
             self.progress.emit(frame_idx, total_frames)
             frame_idx += 1

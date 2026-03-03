@@ -38,19 +38,19 @@ class ActionDetector:
 
         if cooldown_ok and fast_straight and features["wrist_above_head"]:
             if features["wrist_vy"] > min_down_speed:
-                action = "Smash"
+                action = "殺球"
             elif features["wrist_vy"] < -self.config.min_up_speed:
-                action = "Clear"
+                action = "高遠球"
             elif features["wrist_vy"] > self.config.min_drop_speed:
-                action = "Drop"
+                action = "吊球"
 
         if action is None and cooldown_ok and features["wrist_near_shoulder"]:
             if abs(features["wrist_vx"]) > self.config.min_horizontal_speed and 130 <= features["elbow_angle"] <= 175:
-                action = "Drive"
+                action = "平抽球"
 
         if action is None and cooldown_ok and features["wrist_above_shoulder"]:
             if features["wrist_vy"] > self.config.min_drop_speed and 130 <= features["elbow_angle"] <= 160:
-                action = "Cut"
+                action = "切球"
 
         if action:
             self.last_action_ms = features["timestamp_ms"]

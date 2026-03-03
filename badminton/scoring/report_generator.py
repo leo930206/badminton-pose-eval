@@ -57,7 +57,7 @@ def generate_report(event_log: list, video_name: str = "", total_ms: int = 0) ->
     if not event_log:
         return "尚無分析資料。"
 
-    action_names = ["Smash", "Clear", "Drop", "Drive", "Cut"]
+    action_names = ["殺球", "高遠球", "吊球", "平抽球", "切球"]
     lines = []
 
     # 標題
@@ -89,7 +89,7 @@ def generate_report(event_log: list, video_name: str = "", total_ms: int = 0) ->
         score_str = f"{dtw_score:.0f}%" if dtw_score is not None else "  N/A"
         advice_str = advice[0] if advice else ""
 
-        lines.append(f"[{ts}] {action:<6} {stars}  {score_str:<6}  {advice_str}")
+        lines.append(f"[{ts}] {action}  {stars}  {score_str:<6}  {advice_str}")
 
     lines.append("")
     lines.append("─" * 51)
@@ -111,7 +111,7 @@ def generate_report(event_log: list, video_name: str = "", total_ms: int = 0) ->
         avg = sum(scores) / len(scores) if scores else None
         bar = score_to_bar(avg)
         status = _status_label(avg)
-        lines.append(f"  {action:<8} {bar}   {status}")
+        lines.append(f"  {action}  {bar}   {status}")
 
         if avg is not None:
             if avg < worst_score:
