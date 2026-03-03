@@ -1137,8 +1137,16 @@ var S_TOKEN  = 'ccep_gh_token';
 
 // ── 未同步變更追蹤 ────────────────────────────────────
 var _dirty = false;
-function markDirty() { _dirty = true; }
-function markClean() { _dirty = false; }
+function markDirty() {
+  _dirty = true;
+  var btn = document.getElementById('sync-btn');
+  if (btn) { btn.textContent = '⚠ 未同步'; btn.style.background = '#fff3cd'; btn.style.borderColor = '#ffc107'; btn.style.color = '#7c5c00'; }
+}
+function markClean() {
+  _dirty = false;
+  var btn = document.getElementById('sync-btn');
+  if (btn) { btn.textContent = '同步到 GitHub'; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }
+}
 window.addEventListener('beforeunload', function(e) {
   if (!_dirty) return;
   e.preventDefault();
@@ -1840,6 +1848,19 @@ function renderNotes() {
 }
 
 // ── 初始化 ───────────────────────────────────────────
+// ── 密碼保護 ──────────────────────────────────────────
+(function checkPassword() {
+  if (location.protocol === 'file:') return; // 本機開發不需要密碼
+  if (sessionStorage.getItem('ccep_auth') === '1') return; // 本次已驗證
+  var input = prompt('請輸入訪問密碼：');
+  if (input === '932266') {
+    sessionStorage.setItem('ccep_auth', '1');
+  } else {
+    document.body.innerHTML = '<div style="text-align:center;padding:80px;font-family:sans-serif;color:#cf222e;font-size:18px;">密碼錯誤，請重新整理頁面再試。</div>';
+    throw new Error('auth failed');
+  }
+})();
+
 (async function init() {
   renderDates();
   renderStats();
