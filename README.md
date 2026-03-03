@@ -86,4 +86,4 @@ python gui_main.py
 ## 進度追蹤
 
 本專案附有網頁版進度管理工具，部署於 GitHub Pages：
-[https://leo930206.github.io/Badminton-Pose-Eval/](https://leo930206.github.io/Badminton-Pose-Eval/)
+[https://leo930206.github.io/badminton-pose-eval/](https://leo930206.github.io/badminton-pose-eval/)
