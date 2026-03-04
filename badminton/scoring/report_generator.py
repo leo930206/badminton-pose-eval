@@ -16,15 +16,26 @@ def ms_to_timestamp(ms: int) -> str:
 
 
 _ACTION_COLOR = {
+    # ── 原規則式 6 種 ─────────────────────────────
     "殺球":  "#ff2d55",
     "高遠球": "#af52de",   # 紫羅蘭
     "吊球":  "#ff9500",
     "平抽球": "#ffcc00",
     "切球":  "#34c759",
     "挑球":  "#00c7be",   # 薄荷藍綠
+    # ── ShuttleSet 12 種（ML 分類器）────────────────
+    "放小球": "#ff9f0a",   # 橘黃
+    "擋小球": "#30d158",   # 青綠
+    "長球":  "#af52de",   # 紫（與高遠球同色族）
+    "平球":  "#ffd60a",   # 黃
+    "推球":  "#64d2ff",   # 天藍
+    "撲球":  "#ff375f",   # 桃紅
+    "勾球":  "#bf5af2",   # 淺紫
+    "發短球": "#32ade6",   # 藍
+    "發長球": "#0a84ff",   # 深藍
 }
-# 備用色（未來新動作依序使用）
-_BACKUP_COLORS = ["#ff3b30", "#00c7be", "#5856d6", "#ff375f"]
+# 備用色（未知動作）
+_BACKUP_COLORS = ["#636366", "#48484a"]
 
 
 def _hit_height_label(h: float) -> str:
@@ -110,7 +121,12 @@ def generate_html_report(event_log: list, video_name: str = "", total_ms: int = 
     if not event_log:
         return '<p style="color:#6e6e73;">尚無分析資料。</p>'
 
-    action_names = ["殺球", "高遠球", "吊球", "平抽球", "切球", "挑球"]
+    # 所有已知動作（涵蓋規則式 6 種 + ShuttleSet 12 種）
+    action_names = [
+        "殺球", "高遠球", "吊球", "平抽球", "切球", "挑球",   # 規則式
+        "放小球", "擋小球", "長球", "平球", "推球",            # ML
+        "撲球", "勾球", "發短球", "發長球",                    # ML
+    ]
     valid_events = [e for e in event_log if e.get("action") in action_names]
     all_scores   = [e["dtw_score"] for e in valid_events if e.get("dtw_score") is not None]
     avg_all      = sum(all_scores) / len(all_scores) if all_scores else None
@@ -176,11 +192,13 @@ def generate_html_report(event_log: list, video_name: str = "", total_ms: int = 
             extra_str = "  ".join(extra_parts)
             p.append(_entry_html(action, grade, grade_color, ts, advice_str, extra_str))
 
-    # ── 3. 各動作分析 ─────────────────────────────────────
+    # ── 3. 各動作分析（只顯示本場出現過的動作）──────────────────
     p.append(_SEP)
     p.append(_section_header("ACTION ANALYSIS", "各動作分析"))
     has_action = False
-    for action in action_names:
+    appeared_actions = [a for a in action_names
+                        if any(e.get("action") == a for e in event_log)]
+    for action in appeared_actions:
         events = [e for e in event_log if e.get("action") == action]
         if not events:
             continue

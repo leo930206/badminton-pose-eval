@@ -8,6 +8,7 @@
   Pass 2（50-100%）：MediaPipe 骨架分析 + 動作辨識
 """
 
+import os
 import threading
 import time
 from collections import deque
@@ -21,6 +22,7 @@ from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTa
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from badminton.classification.detector import ActionDetector
+from badminton.classification.stroke_classifier import DEFAULT_STROKE_NAMES, StrokeClassifier
 from badminton.data.logger import log_event
 from badminton.data.sequence_buffer import SequenceBuffer
 from badminton.display.renderer import draw_landmarks, draw_shuttle_trail
@@ -33,6 +35,8 @@ from config import (
     Config, INPAINTNET_PATH, MODEL_PATH, MODEL_URL,
     TEMPLATES_DIR, TRACKNET_PATH,
 )
+
+_STROKE_CLF_PATH = os.path.join("models", "stroke_classifier.pkl")
 
 _TRAIL_LEN = 12     # 殘影保留幀數
 
@@ -141,8 +145,17 @@ class AnalysisWorker(QThread):
         seq_buffer    = SequenceBuffer(maxlen=90)
         dtw_scorer    = DTWScorer(TEMPLATES_DIR)
         event_log      = []
-        action_counts  = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球", "挑球"]}
+        action_counts  = {n: 0 for n in DEFAULT_STROKE_NAMES}
         frame_idx      = 0
+
+        # ── ML 分類器（若模型已訓練則啟用）──────────────────────────────
+        stroke_clf: StrokeClassifier | None = None
+        if os.path.exists(_STROKE_CLF_PATH):
+            try:
+                stroke_clf = StrokeClassifier(_STROKE_CLF_PATH)
+                self.status_msg.emit("已載入動作分類器（ML 模型）")
+            except Exception:
+                pass   # 載入失敗時退回規則式分類
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
         frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架
 
@@ -182,6 +195,10 @@ class AnalysisWorker(QThread):
 
                 seq_buffer.add(timestamp_ms, landmarks)
 
+                # ML 分類器：每幀更新骨架緩衝區
+                if stroke_clf is not None:
+                    stroke_clf.add_frame(landmarks)
+
                 right_shoulder = landmarks[12]
                 right_elbow    = landmarks[14]
                 right_wrist    = landmarks[16]
@@ -195,10 +212,17 @@ class AnalysisWorker(QThread):
                 )
                 instant_speed = features["wrist_speed"]
 
+                # 規則式偵測：決定「何時」有擊球事件
                 current_action, context, max_wrist_y = detector.update(features)
 
+                # ML 分類器：覆寫「打了什麼球」（若模型可用且信心足夠）
+                if current_action and stroke_clf is not None:
+                    clf_action, clf_conf = stroke_clf.classify()
+                    if clf_action is not None and clf_conf >= 0.3:
+                        current_action = clf_action
+
                 if current_action:
-                    action_counts[current_action] += 1
+                    action_counts[current_action] = action_counts.get(current_action, 0) + 1
                     _, advice_rule = grade_action(
                         current_action, features, context, max_wrist_y, config
                     )

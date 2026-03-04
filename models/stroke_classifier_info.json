@@ -1,0 +1,22 @@
+{
+  "stroke_names": [
+    "放小球",
+    "擋小球",
+    "殺球",
+    "挑球",
+    "長球",
+    "平球",
+    "切球",
+    "推球",
+    "撲球",
+    "勾球",
+    "發短球",
+    "發長球"
+  ],
+  "n_classes": 12,
+  "n_joints": 17,
+  "seq_len": 30,
+  "accuracy": 0.6137,
+  "flip_bottom": true,
+  "source": "ShuttleSet (CoachAI, KDD 2023)"
+}

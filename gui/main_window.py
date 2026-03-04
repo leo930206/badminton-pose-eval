@@ -38,12 +38,23 @@ from gui.analysis_worker import AnalysisWorker
 
 # 各動作計數 Badge 的淡色背景（動作色 15% 混白）
 _BADGE_BG = {
+    # ── 規則式 6 種 ──────────────────────────────────
     "殺球":  "#ffe0e6",   # 緋紅淡粉
     "高遠球": "#f3e5fa",  # 紫羅蘭淡紫
     "吊球":  "#ffedd9",   # 橘橙淡橘
     "平抽球": "#fff8d9",  # 金黃淡黃
     "切球":  "#e1f7e6",   # 草綠淡綠
     "挑球":  "#d9f6f5",   # 薄荷藍綠淡色
+    # ── ShuttleSet 12 種（ML 分類器）────────────────
+    "放小球": "#fff3e0",  # 橘黃淡
+    "擋小球": "#e0f7ea",  # 青綠淡
+    "長球":  "#f3e5fa",  # 紫淡
+    "平球":  "#fffde0",  # 黃淡
+    "推球":  "#e0f4ff",  # 天藍淡
+    "撲球":  "#ffe0ea",  # 桃紅淡
+    "勾球":  "#f5e0ff",  # 淺紫淡
+    "發短球": "#e0f0ff",  # 藍淡
+    "發長球": "#d9e8ff",  # 深藍淡
 }
 
 
@@ -401,20 +412,24 @@ class MainWindow(QMainWindow):
         card_sep.setFrameShape(QFrame.Shape.HLine)
         card_layout.addWidget(card_sep)
 
-        counts_row = QHBoxLayout()
-        counts_row.setSpacing(6)
+        # 兩列 badge：每列 6 種球種
+        _BADGE_NAMES_ROW1 = ["殺球", "挑球", "長球", "放小球", "切球", "平球"]
+        _BADGE_NAMES_ROW2 = ["擋小球", "推球", "撲球", "勾球", "發短球", "發長球"]
         self.count_labels = {}
-        for name in ["殺球", "高遠球", "吊球", "平抽球", "切球"]:
-            badge = QLabel(f"{name}\n0")
-            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            bg = _BADGE_BG.get(name, "#f2f2f7")
-            badge.setStyleSheet(
-                f"background-color: {bg}; border-radius: 8px; padding: 5px 6px;"
-                f" font-size: 12px; font-weight: 600; color: #1c1c1e; min-width: 44px;"
-            )
-            counts_row.addWidget(badge)
-            self.count_labels[name] = badge
-        card_layout.addLayout(counts_row)
+        for row_names in [_BADGE_NAMES_ROW1, _BADGE_NAMES_ROW2]:
+            counts_row = QHBoxLayout()
+            counts_row.setSpacing(4)
+            for name in row_names:
+                badge = QLabel(f"{name}\n0")
+                badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                bg = _BADGE_BG.get(name, "#f2f2f7")
+                badge.setStyleSheet(
+                    f"background-color: {bg}; border-radius: 6px; padding: 3px 4px;"
+                    f" font-size: 11px; font-weight: 600; color: #1c1c1e; min-width: 38px;"
+                )
+                counts_row.addWidget(badge)
+                self.count_labels[name] = badge
+            card_layout.addLayout(counts_row)
 
         stats_card.setGraphicsEffect(_make_shadow())
         right_layout.addWidget(stats_card)
