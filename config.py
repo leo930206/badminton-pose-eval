@@ -15,6 +15,10 @@ RAW_VIDEOS_DIR = os.path.join("datasets", "raw")
 TRACKNET_PATH   = os.path.join("tracknet", "ckpts", "TrackNet_best.pt")
 INPAINTNET_PATH = os.path.join("tracknet", "ckpts", "InpaintNet_best.pt")
 
+# 球速顯示換算係數（px/s → km/h）
+# TrackNet 座標為原始影片像素；此為概估值，可依拍攝距離微調
+BALL_SPEED_KMH_SCALE: float = 0.035
+
 
 @dataclass
 class Config:

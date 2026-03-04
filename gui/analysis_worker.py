@@ -56,7 +56,7 @@ class AnalysisWorker(QThread):
     """
 
     frame_ready    = pyqtSignal(np.ndarray)
-    action_found   = pyqtSignal(str, object, list, int)   # +timestamp_ms
+    action_found   = pyqtSignal(str, object, list, int, float, float)  # action,dtw,advice,ts_ms,ball_speed,hit_height
     stats_updated  = pyqtSignal(float, str, dict, float)
     progress       = pyqtSignal(int, int)
     frame_progress = pyqtSignal(int, int)                  # frame_idx, total_frames
@@ -222,7 +222,8 @@ class AnalysisWorker(QThread):
                         "advice":       advice,
                     }
                     event_log.append(record)
-                    self.action_found.emit(current_action, dtw_score, advice, features["timestamp_ms"])
+                    self.action_found.emit(current_action, dtw_score, advice, features["timestamp_ms"],
+                                           float(ball_speed), float(hit_height))
                     _action_this_frame = True
 
                 # 繪製骨架

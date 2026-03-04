@@ -1,7 +1,9 @@
 """
 整場分析報告產生器
-用途：把分析過程中累積的 event_log 轉成人類可讀的文字報告。
+用途：把分析過程中累積的 event_log 轉成 HTML 報告。
 """
+
+from config import BALL_SPEED_KMH_SCALE
 
 
 def ms_to_timestamp(ms: int) -> str:
@@ -12,155 +14,282 @@ def ms_to_timestamp(ms: int) -> str:
     return f"{m:02d}:{s:02d}"
 
 
-def score_to_stars(score) -> str:
-    """將 0~100 分數轉成星等。"""
+
+_ACTION_COLOR = {
+    "殺球":  "#ff2d55",
+    "高遠球": "#af52de",   # 紫羅蘭
+    "吊球":  "#ff9500",
+    "平抽球": "#ffcc00",
+    "切球":  "#34c759",
+}
+# 備用色（未來新動作依序使用）
+_BACKUP_COLORS = ["#ff3b30", "#00c7be", "#5856d6", "#ff375f"]
+
+
+def _hit_height_label(h: float) -> str:
+    """將擊球高度比例（0=底部、1=頂部）轉成直覺文字。"""
+    if h >= 0.65:
+        return "高球位"
+    if h >= 0.35:
+        return "中球位"
+    return "低球位"
+
+
+def _grade_label(score) -> str:
+    """將分數轉成等級文字標籤。"""
     if score is None:
-        return "──────"
+        return "待分析"
     if score >= 90:
-        return "★★★★★"
+        return "表現優秀"
     if score >= 75:
-        return "★★★★☆"
+        return "表現良好"
     if score >= 60:
-        return "★★★☆☆"
-    if score >= 45:
-        return "★★☆☆☆"
-    return "★☆☆☆☆"
+        return "尚可"
+    return "需加強"
 
 
-def score_to_bar(score, width: int = 14) -> str:
-    """將分數轉成文字進度條。"""
+def _grade_color(score) -> str:
+    """等級對應顏色。"""
     if score is None:
-        return "░" * width + "  N/A"
+        return "#aeaeb2"
+    if score >= 75:
+        return "#34c759"
+    if score >= 60:
+        return "#ff9500"
+    return "#ff3b30"
+
+
+def _score_bar_html(score, width: int = 10, color: str = "#007aff") -> str:
+    """進度條（Qt HTML ▬ 字元版）。color 決定已填充部分顏色。"""
+    if score is None:
+        return '<span style="color:#e5e5ea;">' + '▬' * width + '</span>'
     filled = int(round(score / 100 * width))
-    bar = "█" * filled + "░" * (width - filled)
-    return f"{bar}  {score:.0f}%"
+    return (
+        f'<span style="color:{color};">' + '▬' * filled + '</span>'
+        + '<span style="color:#e5e5ea;">' + '▬' * (width - filled) + '</span>'
+    )
 
 
-def _status_label(avg_score) -> str:
-    if avg_score is None:
-        return "尚無 DTW 模板資料"
-    if avg_score >= 75:
-        return "✓ 表現良好"
-    if avg_score >= 60:
-        return "△ 尚可，有進步空間"
-    return "⚠ 需要加強"
+def _section_header(en: str, zh: str) -> str:
+    """全大寫灰色區塊標題（稍大、帶字距感）。"""
+    return (
+        f'<p style="font-size:12px; font-weight:700; color:#8e8e93; letter-spacing:1.5px;'
+        f' margin:18px 0 7px 0;">{en.upper()}  {zh}</p>'
+    )
 
 
-def generate_report(event_log: list, video_name: str = "", total_ms: int = 0) -> str:
-    """
-    根據 event_log 產生完整的文字報告。
+def _entry_html(action: str, grade: str, grade_color: str,
+                ts: str, advice_str: str, extra_str: str = "") -> str:
+    """單筆擊球紀錄 HTML（彩色圓點，純文字，無方形背景）。"""
+    action_color = _ACTION_COLOR.get(action, "#32ade6")
+    extra_part = (
+        f'&nbsp;&nbsp;<span style="color:#aeaeb2; font-size:11px;">{extra_str}</span>'
+        if extra_str else ''
+    )
+    return (
+        f'<p style="margin:0 0 6px 0; padding:2px 6px; line-height:1.6;">'
+        f'<span style="color:{action_color}; font-size:15px;">●</span>&nbsp;'
+        f'<b style="color:#007aff; font-size:15px;">{action}</b>'
+        f'&nbsp;&nbsp;<span style="color:{grade_color}; font-size:12px;'
+        f' font-weight:600;">{grade}</span>'
+        f'&nbsp;&nbsp;<span style="color:#aeaeb2; font-size:11px;">{ts}</span>'
+        f'<br/>'
+        f'&nbsp;&nbsp;&nbsp;&nbsp;'
+        f'<span style="color:#6e6e73; font-size:12px;">{advice_str}</span>'
+        + extra_part
+        + f'</p>'
+    )
 
-    event_log 中每筆 dict 包含：
-        timestamp_ms, action, grade, context,
-        dtw_score (可為 None), advice (list)
+
+def generate_html_report(event_log: list, video_name: str = "", total_ms: int = 0,
+                         include_shot_log: bool = False) -> str:
+    """產生 HTML 格式報告（左側彩色細線風格，無方形背景）。
+    結構：摘要（大號評分）→ [擊球紀錄，僅 include_shot_log=True 時] → 各動作分析 → 最需改善
     """
     if not event_log:
-        return "尚無分析資料。"
+        return '<p style="color:#6e6e73;">尚無分析資料。</p>'
 
     action_names = ["殺球", "高遠球", "吊球", "平抽球", "切球"]
-    lines = []
-
-    # 標題
-    lines.append("整場影片分析報告")
-    lines.append("═" * 51)
-
-    if video_name:
-        lines.append(f"影片：{video_name}")
-
-    if total_ms > 0:
-        total_sec = total_ms // 1000
-        duration = f"{total_sec // 60:02d}:{total_sec % 60:02d}"
-        lines.append(f"影片長度：{duration}")
-
     valid_events = [e for e in event_log if e.get("action") in action_names]
-    skipped = len(event_log) - len(valid_events)
+    all_scores   = [e["dtw_score"] for e in valid_events if e.get("dtw_score") is not None]
+    avg_all      = sum(all_scores) / len(all_scores) if all_scores else None
 
-    lines.append(f"有效擊球數：{len(valid_events)} 球   不列入評分：{skipped} 球")
-    lines.append("")
+    duration = ""
+    if total_ms > 0:
+        s = total_ms // 1000
+        duration = f"{s // 60:02d}:{s % 60:02d}"
 
-    # 逐球紀錄
-    for event in event_log:
-        ts         = ms_to_timestamp(event.get("timestamp_ms", 0))
-        action     = event.get("action", "?")
-        dtw_score  = event.get("dtw_score")
-        advice     = event.get("advice", [])
-        ball_speed = event.get("ball_speed", 0.0)
-        hit_height = event.get("hit_height", 0.0)
+    p = []
 
-        stars      = score_to_stars(dtw_score)
-        score_str  = f"{dtw_score:.0f}%" if dtw_score is not None else "  N/A"
-        advice_str = advice[0] if advice else ""
-        extra_parts = []
-        if ball_speed > 0:
-            extra_parts.append(f"球速:{ball_speed:.0f}")
-        if hit_height > 0:
-            extra_parts.append(f"高度:{hit_height*100:.0f}%")
-        extra_str  = " ".join(extra_parts)
+    # ── 1. 摘要：大號居中評分 ──────────────────────────────
+    avg_str   = f"{avg_all:.0f}%" if avg_all is not None else "—"
+    avg_grade = _grade_label(avg_all)
+    avg_color = _grade_color(avg_all)
+    meta_parts = []
+    if video_name:    meta_parts.append(video_name)
+    if duration:      meta_parts.append(duration)
+    if valid_events:  meta_parts.append(f"{len(valid_events)} 次有效擊球")
+    meta = "  ·  ".join(meta_parts)
 
-        lines.append(f"[{ts}] {action}  {stars}  {score_str:<6}  {extra_str:<16}  {advice_str}")
+    p.append(
+        f'<p style="text-align:center; margin:6px 0 2px 0;">'
+        f'<span style="font-size:11px; color:#aeaeb2;">整場影片分析報告</span></p>'
+        f'<p style="text-align:center; margin:0 0 2px 0;">'
+        f'<span style="font-size:38px; font-weight:700; color:{avg_color};">{avg_str}</span></p>'
+        f'<p style="text-align:center; margin:0 0 2px 0;">'
+        f'<span style="font-size:14px; font-weight:600; color:{avg_color};">{avg_grade}</span></p>'
+        f'<p style="text-align:center; margin:0 0 0 0;">'
+        f'<span style="font-size:11px; color:#aeaeb2;">{meta}</span></p>'
+    )
 
-    lines.append("")
-    lines.append("─" * 51)
-    lines.append("各動作平均分數")
-    lines.append("")
+    _SEP = (
+        '<table width="100%" cellpadding="0" cellspacing="0"'
+        ' style="margin:18px 0 0 0; border-collapse:collapse;">'
+        '<tr>'
+        '<td width="10"></td>'
+        '<td style="border-top:1px solid #e5e5ea;"></td>'
+        '<td width="10"></td>'
+        '</tr>'
+        '</table>'
+    )
 
-    # 統計各動作
-    worst_action = None
-    worst_score = float("inf")
-    best_action = None
-    best_score = -1.0
+    # ── 2. 擊球紀錄（僅匯出版本顯示）─────────────────────────
+    if include_shot_log:
+        p.append(_SEP)
+        p.append(_section_header("SHOT LOG", "擊球紀錄"))
+        for ev in event_log:
+            ts         = ms_to_timestamp(ev.get("timestamp_ms", 0))
+            action     = ev.get("action", "?")
+            dtw_score  = ev.get("dtw_score")
+            advice     = ev.get("advice", [])
+            ball_speed = ev.get("ball_speed", 0.0)
+            hit_height = ev.get("hit_height", 0.0)
+            grade      = _grade_label(dtw_score)
+            grade_color = _grade_color(dtw_score)
+            advice_str = advice[0] if advice else "—"
+            extra_parts = []
+            if ball_speed > 0:
+                extra_parts.append(f"球速 {ball_speed * BALL_SPEED_KMH_SCALE:.0f}km/h")
+            if hit_height > 0:
+                extra_parts.append(_hit_height_label(hit_height))
+            extra_str = "  ".join(extra_parts)
+            p.append(_entry_html(action, grade, grade_color, ts, advice_str, extra_str))
 
+    # ── 3. 各動作分析 ─────────────────────────────────────
+    p.append(_SEP)
+    p.append(_section_header("ACTION ANALYSIS", "各動作分析"))
+    has_action = False
     for action in action_names:
         events = [e for e in event_log if e.get("action") == action]
         if not events:
             continue
+        has_action   = True
+        count        = len(events)
+        scores       = [e["dtw_score"] for e in events if e.get("dtw_score") is not None]
+        avg          = sum(scores) / len(scores) if scores else None
+        grade        = _grade_label(avg)
+        grade_color  = _grade_color(avg)
+        sc_txt       = f"{avg:.0f}%" if avg is not None else "N/A"
+        action_color = _ACTION_COLOR.get(action, "#32ade6")
+        bar          = _score_bar_html(avg, color=action_color)
 
-        scores = [e["dtw_score"] for e in events if e.get("dtw_score") is not None]
-        avg = sum(scores) / len(scores) if scores else None
-        bar = score_to_bar(avg)
-        status = _status_label(avg)
-        lines.append(f"  {action}  {bar}   {status}")
+        p.append(
+            f'<p style="margin:0 0 6px 0; padding:2px 6px; line-height:1.6;">'
+            f'<span style="color:{action_color}; font-size:15px;">●</span>&nbsp;'
+            f'<b style="color:{action_color}; font-size:15px;">{action}</b>'
+            f'&nbsp;&nbsp;<span style="color:#aeaeb2; font-size:10px;">({count}次)</span>'
+            f'<br/>'
+            f'&nbsp;&nbsp;&nbsp;&nbsp;'
+            f'{bar}'
+            f'&nbsp;&nbsp;<b style="color:#1c1c1e; font-size:13px;">{sc_txt}</b>'
+            f'&nbsp;&nbsp;<span style="color:{grade_color}; font-size:12px;'
+            f' font-weight:600;">{grade}</span>'
+            f'</p>'
+        )
+    if not has_action:
+        p.append('<p style="color:#aeaeb2; font-size:12px; padding:2px 6px;">'
+                 '本場未偵測到有效動作。</p>')
 
-        if avg is not None:
-            if avg < worst_score:
-                worst_score = avg
-                worst_action = action
-            if avg > best_score:
-                best_score = avg
-                best_action = action
-
-    lines.append("")
-    lines.append("─" * 51)
-
-    # 最需改善
-    lines.append("本場最需改善的地方")
-    lines.append("")
-    advice_count = 0
-    seen_advice = set()
+    # ── 4. 改善建議 ───────────────────────────────────────
+    p.append(_SEP)
+    p.append(_section_header("TIPS", "改善建議"))
+    _SYMBOLS = ["①", "②", "③", "④", "⑤"]
+    seen, cnt = set(), 0
     for event in event_log:
         for adv in event.get("advice", []):
-            if adv not in seen_advice:
-                advice_count += 1
-                lines.append(f"  {advice_count}. {adv}")
-                seen_advice.add(adv)
-            if advice_count >= 3:
+            if adv not in seen:
+                sym = _SYMBOLS[cnt] if cnt < len(_SYMBOLS) else f"{cnt + 1}."
+                p.append(
+                    f'<p style="margin:0 0 5px 0; padding:2px 6px;'
+                    f' color:#3c3c43; font-size:13px;">'
+                    f'<span style="color:#007aff; font-weight:700;">{sym}</span> {adv}</p>'
+                )
+                seen.add(adv)
+                cnt += 1
+            if cnt >= 5:
                 break
-        if advice_count >= 3:
+        if cnt >= 5:
             break
+    if not seen:
+        p.append('<p style="color:#aeaeb2; font-size:12px; padding:2px 6px;">'
+                 '暫無具體建議（需 DTW 模板後才能提供詳細分析）</p>')
 
-    if not seen_advice:
-        lines.append("  暫無具體建議（需要 DTW 模板才能提供詳細分析）")
+    return "".join(p)
 
-    lines.append("")
-    lines.append("─" * 51)
 
-    # 表現最好的動作
-    if best_action:
-        lines.append(f"本場表現最好的動作")
-        lines.append("")
-        lines.append(f"  {best_action}：平均相似度 {best_score:.0f}%，{'接近職業標準' if best_score >= 75 else '仍有進步空間'}")
 
-    lines.append("")
-    lines.append("═" * 51)
+def _wrap_html_page_qt(body_html: str) -> str:
+    """Qt QTextEdit 版本：以完整 HTML 框架包覆，讓內容有足夠 margin 並對齊瀏覽器效果。"""
+    return (
+        '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><style>'
+        'body { font-family: "Segoe UI Variable","Segoe UI","PingFang TC",'
+        '"Microsoft JhengHei UI",sans-serif; font-size:14px; color:#1c1c1e;'
+        ' margin:0; }'
+        '</style></head><body>'
+        + body_html
+        + '</body></html>'
+    )
 
-    return "\n".join(lines)
+
+def _wrap_html_page(body_html: str, title: str = "羽球動作分析報告") -> str:
+    """將 generate_html_report() 產生的 HTML 片段包裝成完整可獨立開啟的 HTML 頁面。"""
+    return f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+  body {{
+    background: #f5f5f7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+                 "Microsoft JhengHei", sans-serif;
+    font-size: 15px;
+    color: #1c1c1e;
+    margin: 0;
+    padding: 0;
+  }}
+  .page {{
+    max-width: 680px;
+    margin: 32px auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.08);
+    padding: 28px 28px 36px;
+  }}
+  .page-title {{
+    font-size: 13px;
+    font-weight: 700;
+    color: #8e8e93;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }}
+</style>
+</head>
+<body>
+<div class="page">
+{body_html}
+</div>
+</body>
+</html>"""

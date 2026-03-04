@@ -21,6 +21,11 @@ QWidget {
     font-size: 14px;
 }
 
+/* 讓所有 QLabel 透明，避免在白色卡片裡出現灰色背景框 */
+QLabel {
+    background-color: transparent;
+}
+
 /* ══════════════════════════════════════
    按鈕
    ══════════════════════════════════════ */
@@ -29,9 +34,9 @@ QPushButton {
     color: #1c1c1e;
     border: 1px solid #d1d1d6;
     border-radius: 8px;
-    padding: 5px 14px;
+    padding: 0 14px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
     min-width: 64px;
     min-height: 28px;
 }
@@ -48,7 +53,7 @@ QPushButton#btn_start {
     background-color: #007aff;
     color: #ffffff;
     border: none;
-    font-weight: 600;
+    font-weight: 400;
 }
 QPushButton#btn_start:hover   { background-color: #0071eb; }
 QPushButton#btn_start:pressed { background-color: #005ecb; }
@@ -62,7 +67,7 @@ QPushButton#btn_stop:enabled {
     background-color: #ff3b30;
     color: #ffffff;
     border: none;
-    font-weight: 600;
+    font-weight: 400;
 }
 QPushButton#btn_stop:enabled:hover   { background-color: #e0342a; }
 QPushButton#btn_stop:enabled:pressed { background-color: #c52d23; }
@@ -162,10 +167,28 @@ QLabel#lbl_status {
    區塊小標題（偵測紀錄 / 整場報告 …）
    ══════════════════════════════════════ */
 QLabel#lbl_section {
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 700;
-    color: #aeaeb2;
-    padding: 6px 0px 2px 0px;
+    color: #1c1c1e;
+    padding: 8px 0px 4px 0px;
+    margin-top: 2px;
+}
+
+/* 匯出報告按鈕（比區塊標題小）*/
+QPushButton#btn_export {
+    font-size: 12px;
+    padding: 3px 8px;
+    min-width: 56px;
+    min-height: 22px;
+}
+
+/* ══════════════════════════════════════
+   工具列外框
+   ══════════════════════════════════════ */
+QFrame#toolbar_frame {
+    background-color: #ffffff;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
 }
 
 /* ══════════════════════════════════════
@@ -187,13 +210,16 @@ QLabel#stat_val {
     font-weight: 600;
 }
 
-/* 動作計數（殺球 / 高遠球 … 不需額外背景） */
+/* 動作計數 - 圓角 pill 樣式 */
 QLabel#stat_count {
-    background-color: transparent;
+    background-color: #f2f2f7;
     border: none;
-    padding: 2px 0px;
-    font-size: 13px;
+    border-radius: 8px;
+    padding: 5px 6px;
+    font-size: 12px;
+    font-weight: 600;
     color: #1c1c1e;
+    min-width: 44px;
 }
 
 /* ══════════════════════════════════════
@@ -224,8 +250,8 @@ QFrame[frameShape="5"] {
    Splitter 把手（幾乎隱形）
    ══════════════════════════════════════ */
 QSplitter::handle:horizontal {
-    background-color: #e5e5ea;
-    width: 1px;
+    background-color: transparent;
+    width: 8px;
 }
 
 /* ══════════════════════════════════════
