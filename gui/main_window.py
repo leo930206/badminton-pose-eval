@@ -19,7 +19,7 @@ import os
 import cv2
 import numpy as np
 from PyQt5.QtCore import Qt, QSize, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QImage, QPixmap
+from PyQt5.QtGui import QFont, QImage, QPainter, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QProgressBar, QPushButton, QSlider,
@@ -38,6 +38,39 @@ from gui.analysis_worker import AnalysisWorker
 class _VideoLabel(QLabel):
     """強制 16:9 比例的影片顯示框。"""
 
+    def __init__(self, text: str = "", parent=None):
+        super().__init__(text, parent)
+        self._disp_pixmap: QPixmap | None = None
+
+    def setDisplayPixmap(self, pixmap: QPixmap) -> None:
+        """設定影片幀。使用 update() 觸發重繪，不呼叫 setPixmap()。
+        setPixmap() 內部會呼叫 updateGeometry()，通知 layout 重算，
+        導致視窗隨播放不斷放大。改用 paintEvent 自行繪製可完全避免此問題。"""
+        self._disp_pixmap = pixmap
+        self.update()   # 只重繪，不動 layout
+
+    def clear(self):
+        self._disp_pixmap = None
+        super().clear()
+
+    def setText(self, text: str):
+        self._disp_pixmap = None
+        super().setText(text)
+
+    def paintEvent(self, event):
+        if self._disp_pixmap is not None and not self._disp_pixmap.isNull():
+            painter = QPainter(self)
+            scaled = self._disp_pixmap.scaled(
+                self.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+        else:
+            super().paintEvent(event)
+
     def hasHeightForWidth(self) -> bool:
         return True
 
@@ -45,8 +78,10 @@ class _VideoLabel(QLabel):
         return width * 9 // 16
 
     def sizeHint(self) -> QSize:
-        base = super().sizeHint()
-        return QSize(base.width(), self.heightForWidth(base.width()))
+        return QSize(160, 90)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(0, 0)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -472,14 +507,7 @@ class MainWindow(QMainWindow):
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
         q_img = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
-        pixmap = QPixmap.fromImage(q_img)
-        self.video_label.setPixmap(
-            pixmap.scaled(
-                self.video_label.size(),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
+        self.video_label.setDisplayPixmap(QPixmap.fromImage(q_img))
 
     _CTX_ZH = {"offense": "進攻", "defense": "防守", "neutral": "待機"}
 
