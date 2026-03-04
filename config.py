@@ -22,17 +22,25 @@ BALL_SPEED_KMH_SCALE: float = 0.035
 
 @dataclass
 class Config:
-    prep_bent_angle: float = 120.0
-    straight_angle: float = 160.0
-    perfect_angle_min: float = 165.0
+    # ── 揮拍偵測：手肘角度 ──────────────────────────────────────
+    prep_bent_angle: float = 130.0        # 準備揮拍：手肘彎曲到此角度以下（原 120，放寬讓更多準備姿勢被接受）
+    straight_angle: float = 150.0         # 揮拍完成：手肘伸直到此角度以上（原 160，放寬避免漏判）
+    perfect_angle_min: float = 165.0      # 完美伸直角度（建議回饋用）
     elbow_feedback_threshold: float = 150.0
-    min_down_speed: float = 1.5
-    min_up_speed: float = 1.2
-    min_drop_speed: float = 0.6
-    min_horizontal_speed: float = 1.2
-    smash_min_interval_ms: int = 700
-    max_straighten_frames: int = 5
+
+    # ── 揮拍偵測：手腕速度（歸一化座標/秒）────────────────────────
+    # 說明：速度 1.0 ≈ 一幀內手腕移動 1/30 個畫面高度（30fps）
+    min_down_speed: float = 0.8           # 向下揮拍速度閾值 → 殺球（原 1.5，放寬適應非職業動作）
+    min_up_speed: float = 0.7             # 向上揮拍速度閾值 → 高遠球（原 1.2）
+    min_drop_speed: float = 0.35          # 向下慢速閾值 → 吊球（原 0.6）
+    min_horizontal_speed: float = 0.7     # 平抽球水平速度閾值（原 1.2）
+
+    # ── 偵測視窗：記憶幀數 ──────────────────────────────────────
+    smash_min_interval_ms: int = 700      # 兩次偵測最短間隔（ms）
+    max_straighten_frames: int = 12       # 從彎到直最多幾幀（原 5=167ms，改為 12=400ms）
+    max_history: int = 15                 # 記憶幀數（原 5=167ms，改為 15=500ms，避免準備動作過長被忘記）
+
+    # ── 其他 ──────────────────────────────────────────────────
     feedback_duration_sec: float = 0.8
     flash_duration_sec: float = 0.5
     wrist_shoulder_tol: float = 0.08
-    max_history: int = 5

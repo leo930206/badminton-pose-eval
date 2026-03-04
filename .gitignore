@@ -18,6 +18,13 @@ tracknet/
 # 產生的輸出（每次執行都會重建）
 output/
 
+# 編輯器暫存
+tempCodeRunnerFile.py
+.vscode/
+
+# datasets 根目錄的測試影片（raw/ 已忽略，這裡補 datasets/*.mp4）
+datasets/*.mp4
+
 # 系統
 .DS_Store
 Thumbs.db
