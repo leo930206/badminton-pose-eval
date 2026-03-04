@@ -1412,7 +1412,7 @@ function renderDates() {
     // 新排版：第一行最大，二三四行同等大小
     card.innerHTML =
       '<div class="ms-title' + (next ? ' ' + cd.cls : '') + '">' + m.label + '</div>' +
-      '<div class="ms-meta">&#x1F4C5; ' + dateStr + '&nbsp;&nbsp;' + m.sub + '&nbsp;&nbsp;第 ' + m.week + ' 週</div>' +
+      '<div class="ms-meta">&#x1F4C5; ' + dateStr + ' ' + m.sub + ' 第' + m.week + '週</div>' +
       '<div class="ms-meta">&#x1F4CD; ' + m.location + '</div>' +
       '<div class="ms-cd ' + cd.cls + '">' + cd.text + '</div>';
 
