@@ -146,8 +146,8 @@ class AnalysisWorker(QThread):
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
         frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架
 
-        # 延遲顯示機制：偵測到擊球後再等 0.5 秒才顯示橫幅 + 暫停
-        _delay_frames   = max(1, int(fps * 0.5))
+        # 延遲顯示機制：偵測到擊球後再等 0.3 秒才顯示橫幅 + 暫停
+        _delay_frames   = max(1, int(fps * 0.3))
         _pending_action: tuple | None = None   # (action, dtw_score, advice, ts_ms, ball_speed, hit_height)
         _pending_frames: int = 0               # 剩餘倒數幀數
 
@@ -225,7 +225,7 @@ class AnalysisWorker(QThread):
                         "advice":       advice,
                     }
                     event_log.append(record)
-                    # 不立即發送：等 0.5 秒後才顯示橫幅（讓使用者看到球打出去後再暫停）
+                    # 不立即發送：等 0.3 秒後才顯示橫幅（讓使用者看到球打出去後再暫停）
                     if _pending_action is None:   # 若已有待發送動作，不覆蓋
                         _pending_action = (current_action, dtw_score, advice,
                                            features["timestamp_ms"],
@@ -258,7 +258,7 @@ class AnalysisWorker(QThread):
             self.frame_progress.emit(frame_idx, total_frames)
             frame_idx += 1
 
-            # 倒數計時：偵測後 0.5 秒才顯示橫幅並暫停
+            # 倒數計時：偵測後 0.3 秒才顯示橫幅並暫停
             if _pending_frames > 0:
                 _pending_frames -= 1
                 if _pending_frames == 0 and _pending_action is not None:
