@@ -146,6 +146,11 @@ class AnalysisWorker(QThread):
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
         frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架
 
+        # 延遲顯示機制：偵測到擊球後再等 0.5 秒才顯示橫幅 + 暫停
+        _delay_frames   = max(1, int(fps * 0.5))
+        _pending_action: tuple | None = None   # (action, dtw_score, advice, ts_ms, ball_speed, hit_height)
+        _pending_frames: int = 0               # 剩餘倒數幀數
+
         cap = cv2.VideoCapture(self.video_path)
 
         while cap.isOpened() and not self._stop_flag:
@@ -168,8 +173,6 @@ class AnalysisWorker(QThread):
             ball_pos = ball_positions.get(frame_idx)
             ball_trail.appendleft(ball_pos)
             ball_speed = _calc_ball_speed(ball_trail, fps)
-
-            _action_this_frame = False
 
             if results.pose_landmarks:
                 landmarks = results.pose_landmarks[0]
@@ -222,9 +225,12 @@ class AnalysisWorker(QThread):
                         "advice":       advice,
                     }
                     event_log.append(record)
-                    self.action_found.emit(current_action, dtw_score, advice, features["timestamp_ms"],
+                    # 不立即發送：等 0.5 秒後才顯示橫幅（讓使用者看到球打出去後再暫停）
+                    if _pending_action is None:   # 若已有待發送動作，不覆蓋
+                        _pending_action = (current_action, dtw_score, advice,
+                                           features["timestamp_ms"],
                                            float(ball_speed), float(hit_height))
-                    _action_this_frame = True
+                        _pending_frames = _delay_frames
 
                 # 繪製骨架
                 color = (0, 255, 0)
@@ -252,10 +258,16 @@ class AnalysisWorker(QThread):
             self.frame_progress.emit(frame_idx, total_frames)
             frame_idx += 1
 
-            # 擊球暫停：讓 GUI 顯示建議後等待使用者點擊繼續
-            if _action_this_frame and self.pause_on_action and not self._stop_flag:
-                self._pause_event.clear()     # 切換為「暫停」狀態
-                self._pause_event.wait()      # 阻塞直到 resume() 被呼叫
+            # 倒數計時：偵測後 0.5 秒才顯示橫幅並暫停
+            if _pending_frames > 0:
+                _pending_frames -= 1
+                if _pending_frames == 0 and _pending_action is not None:
+                    ac, ds, adv, ts, bs, hh = _pending_action
+                    _pending_action = None
+                    self.action_found.emit(ac, ds, adv, ts, bs, hh)
+                    if self.pause_on_action and not self._stop_flag:
+                        self._pause_event.clear()
+                        self._pause_event.wait()
 
             # 正常速度模式：計算剩餘時間並等待
             if self.normal_speed:

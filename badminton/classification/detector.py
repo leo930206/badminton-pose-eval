@@ -36,7 +36,7 @@ class ActionDetector:
             self.config.max_straighten_frames,
         )
 
-        if cooldown_ok and fast_straight and features["wrist_above_head"]:
+        if cooldown_ok and fast_straight and features["wrist_above_head"] and self.prep_active:
             if features["wrist_vy"] > min_down_speed:
                 action = "殺球"
             elif features["wrist_vy"] < -self.config.min_up_speed:
