@@ -28,7 +28,6 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 14px; line-height: 1.5;
   min-height: 100vh;
-  zoom: 1.5625;     /* 1.25 × 1.25 = 1.5625 */
 }
 
 /* ── Header ── */
@@ -403,8 +402,12 @@ body {
 /* 手機版短標題（預設隱藏，手機才顯示） */
 .title-short { display: none; }
 
+/* ── 桌機放大 1.5625×（僅滑鼠裝置）── */
+@media (pointer: fine) and (min-width: 601px) {
+  html { zoom: 1.5625; }
+}
+
 /* ── 觸控裝置（iPad / 平板，寬 ≥ 601px）── */
-/* 用明確的 font-size 覆寫取代 zoom（Safari 的 zoom 只縮版面，不縮字體）*/
 @media (pointer: coarse) and (min-width: 601px) {
   .mobile-only { display: inline-flex; }
 
@@ -544,6 +547,12 @@ body {
 
   /* 重要連結新增列 */
   .link-name-in { width: 100% !important; }
+
+  /* 手機版：14px 自然大小（zoom 已移至桌機 media query，手機不受影響）*/
+  body { font-size: 14px; }
+
+  /* 排版模式的上下移動按鈕縮小 */
+  .move-btn { padding: 2px 7px; font-size: 11px; }
 }
 </style>
 </head>
