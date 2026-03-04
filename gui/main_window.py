@@ -307,8 +307,7 @@ class MainWindow(QMainWindow):
         self.lbl_time = QLabel("00:00 / 00:00")
         self.lbl_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_time.setObjectName("lbl_time")
-        self.lbl_time.setFixedHeight(16)
-        self.lbl_time.setStyleSheet("font-size: 14px; color: #8c959f;")
+        self.lbl_time.setFixedHeight(18)
         left_layout.addWidget(self.lbl_time)
 
         splitter.addWidget(left_widget)
@@ -395,7 +394,7 @@ class MainWindow(QMainWindow):
         lbl_report = QLabel("整場報告")
         lbl_report.setObjectName("lbl_section")
         self.btn_export = QPushButton("匯出報告")
-        self.btn_export.setFixedHeight(24)
+        self.btn_export.setFixedHeight(28)
         self.btn_export.setEnabled(False)
         self.btn_export.clicked.connect(self._on_export_report)
         report_header.addWidget(lbl_report)
