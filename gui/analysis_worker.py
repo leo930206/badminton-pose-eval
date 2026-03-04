@@ -141,7 +141,7 @@ class AnalysisWorker(QThread):
         seq_buffer    = SequenceBuffer(maxlen=90)
         dtw_scorer    = DTWScorer(TEMPLATES_DIR)
         event_log      = []
-        action_counts  = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球"]}
+        action_counts  = {n: 0 for n in ["殺球", "高遠球", "吊球", "平抽球", "切球", "挑球"]}
         frame_idx      = 0
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
         frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架

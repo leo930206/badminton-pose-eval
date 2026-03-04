@@ -34,6 +34,7 @@ class Config:
     min_up_speed: float = 0.7             # 向上揮拍速度閾值 → 高遠球（原 1.2）
     min_drop_speed: float = 0.35          # 向下慢速閾值 → 吊球（原 0.6）
     min_horizontal_speed: float = 0.7     # 平抽球水平速度閾值（原 1.2）
+    min_lift_speed: float = 0.6           # 挑球向上速度閾值（手腕在肩膀以下快速向上）
 
     # ── 偵測視窗：記憶幀數 ──────────────────────────────────────
     smash_min_interval_ms: int = 700      # 兩次偵測最短間隔（ms）

@@ -52,6 +52,11 @@ class ActionDetector:
             if features["wrist_vy"] > self.config.min_drop_speed and 130 <= features["elbow_angle"] <= 160:
                 action = "切球"
 
+        # 挑球：手腕在肩膀以下，快速向上揮拍（把球從前場挑高到後場）
+        if action is None and cooldown_ok and not features["wrist_above_shoulder"]:
+            if features["wrist_vy"] < -self.config.min_lift_speed:
+                action = "挑球"
+
         if action:
             self.last_action_ms = features["timestamp_ms"]
             return action, context, self.max_wrist_y_in_prep

@@ -21,6 +21,7 @@ _ACTION_COLOR = {
     "吊球":  "#ff9500",
     "平抽球": "#ffcc00",
     "切球":  "#34c759",
+    "挑球":  "#00c7be",   # 薄荷藍綠
 }
 # 備用色（未來新動作依序使用）
 _BACKUP_COLORS = ["#ff3b30", "#00c7be", "#5856d6", "#ff375f"]
@@ -109,7 +110,7 @@ def generate_html_report(event_log: list, video_name: str = "", total_ms: int = 
     if not event_log:
         return '<p style="color:#6e6e73;">尚無分析資料。</p>'
 
-    action_names = ["殺球", "高遠球", "吊球", "平抽球", "切球"]
+    action_names = ["殺球", "高遠球", "吊球", "平抽球", "切球", "挑球"]
     valid_events = [e for e in event_log if e.get("action") in action_names]
     all_scores   = [e["dtw_score"] for e in valid_events if e.get("dtw_score") is not None]
     avg_all      = sum(all_scores) / len(all_scores) if all_scores else None

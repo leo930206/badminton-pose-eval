@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import MODEL_PATH, MODEL_URL, TEMPLATES_DIR
 from badminton.pose.model_loader import ensure_model
 
-VALID_ACTIONS = ["smash", "clear", "drop", "drive", "cut"]
+VALID_ACTIONS = ["smash", "clear", "drop", "drive", "cut", "lift"]
 
 # 只儲存上半身關鍵關節（節省空間，DTW 比對也更精準）
 KEY_LANDMARKS = {
