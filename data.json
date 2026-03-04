@@ -29,7 +29,15 @@
       "url": "https://docs.google.com/document/d/1s9kQvjymGXYmjX-CKnRGGuJMSFXaulzQYDQeN8N6mZk/edit?tab=t.0#heading=h.qqf6bsr36kp5"
     }
   ],
-  "notes": {},
+  "notes": {
+    "w2": [
+      {
+        "id": "mmc63ja9zaan",
+        "name": "Claude Code",
+        "text": "請你把我當成笨蛋解釋超級清楚詳細:完美解決\"動作偵測判斷正確 + 標準動作資料\"的做法改變 現在跟以前差別是什麼? 其中出現每個專有名詞都要超級詳細簡單解釋清楚給我"
+      }
+    ]
+  },
   "layout": [
     "section-todo",
     "section-links",
