@@ -63,15 +63,44 @@ N_JOINTS  = 17
 SEQ_LEN   = 30
 N_SAMPLES = 5   # 每種球種抽取幾個模板
 
+# COCO 索引：用於正規化計算
+_COCO_LEFT_HIP      = 11
+_COCO_RIGHT_HIP     = 12
+_COCO_LEFT_SHOULDER = 5
+_COCO_RIGHT_SHOULDER= 6
 
-def _bbox_normalize(joints: np.ndarray) -> np.ndarray:
-    """把 (17, 2) 座標正規化到 bounding box 基準（與推論端一致）。"""
-    min_xy   = joints.min(axis=0)
-    max_xy   = joints.max(axis=0)
-    diagonal = float(np.sqrt(((max_xy - min_xy) ** 2).sum()))
-    if diagonal < 1e-6:
-        return joints - min_xy
-    return (joints - min_xy) / diagonal
+
+def _hip_torso_normalize_frame(joints: np.ndarray) -> dict:
+    """
+    把 (17, 2) COCO 骨架正規化為「身體中心 + 軀幹高度」座標。
+
+    與 sequence_buffer.py normalize_landmarks() 完全相同的演算法：
+    - 原點 = 左右髖部中點
+    - 尺度 = 髖部中點到肩部中點的距離（軀幹高度）
+
+    這樣模板和查詢（使用者影片）才在同一個座標系，DTW 分數才有意義。
+    以前用 bbox normalization 導致兩者差了約 9 倍 → DTW 分數只有 6%。
+    """
+    left_hip       = joints[_COCO_LEFT_HIP]
+    right_hip      = joints[_COCO_RIGHT_HIP]
+    left_shoulder  = joints[_COCO_LEFT_SHOULDER]
+    right_shoulder = joints[_COCO_RIGHT_SHOULDER]
+
+    cx = (left_hip[0]  + right_hip[0])  / 2.0
+    cy = (left_hip[1]  + right_hip[1])  / 2.0
+    shoulder_cx = (left_shoulder[0] + right_shoulder[0]) / 2.0
+    shoulder_cy = (left_shoulder[1] + right_shoulder[1]) / 2.0
+
+    torso_height = float(np.sqrt((shoulder_cx - cx) ** 2 + (shoulder_cy - cy) ** 2))
+    if torso_height < 1e-6:
+        torso_height = 1.0
+
+    landmarks = {}
+    for coco_idx, joint_name in _COCO_TO_DTW.items():
+        x = float((joints[coco_idx, 0] - cx) / torso_height)
+        y = float((joints[coco_idx, 1] - cy) / torso_height)
+        landmarks[joint_name] = {"x": round(x, 4), "y": round(y, 4)}
+    return landmarks
 
 
 def _pose_to_dtw_frames(pose: np.ndarray) -> list:
@@ -79,18 +108,9 @@ def _pose_to_dtw_frames(pose: np.ndarray) -> list:
     把 (T, 17, 2) 骨架序列轉成 DTW scorer 所需的 frames 列表。
 
     每個 frame：{"landmarks": {"nose": {"x": ..., "y": ...}, ...}}
-    座標已做 bbox 正規化（與推論端一致）。
+    座標用 hip-torso 正規化（與 sequence_buffer.py 一致）。
     """
-    frames = []
-    for joints in pose:
-        norm = _bbox_normalize(joints)
-        landmarks = {}
-        for coco_idx, joint_name in _COCO_TO_DTW.items():
-            x = float(norm[coco_idx, 0])
-            y = float(norm[coco_idx, 1])
-            landmarks[joint_name] = {"x": x, "y": y}
-        frames.append({"landmarks": landmarks})
-    return frames
+    return [{"landmarks": _hip_torso_normalize_frame(joints)} for joints in pose]
 
 
 def build_templates(

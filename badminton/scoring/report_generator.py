@@ -15,26 +15,24 @@ def ms_to_timestamp(ms: int) -> str:
 
 
 
+# ── 動作顏色表（ShuttleSet 12 種球種）────────────────────────────────────────
+# 若需修改顏色，在此改即可（同時影響 HTML 報告 badge 和 GUI 擊球橫幅色條）
+# main_window.py 的 _BADGE_BG 是統計區 badge 背景色，也需一起修改
 _ACTION_COLOR = {
-    # ── 原規則式 6 種 ─────────────────────────────
-    "殺球":  "#ff2d55",
-    "高遠球": "#af52de",   # 紫羅蘭
-    "吊球":  "#ff9500",
-    "平抽球": "#ffcc00",
-    "切球":  "#34c759",
+    "殺球":  "#ff2d55",   # 緋紅
     "挑球":  "#00c7be",   # 薄荷藍綠
-    # ── ShuttleSet 12 種（ML 分類器）────────────────
-    "放小球": "#ff9f0a",   # 橘黃
-    "擋小球": "#30d158",   # 青綠
-    "長球":  "#af52de",   # 紫（與高遠球同色族）
+    "長球":  "#af52de",   # 紫
+    "放小球": "#ff9f0a",  # 橘黃
+    "切球":  "#34c759",   # 草綠
     "平球":  "#ffd60a",   # 黃
+    "擋小球": "#30d158",  # 青綠
     "推球":  "#64d2ff",   # 天藍
     "撲球":  "#ff375f",   # 桃紅
     "勾球":  "#bf5af2",   # 淺紫
-    "發短球": "#32ade6",   # 藍
-    "發長球": "#0a84ff",   # 深藍
+    "發短球": "#32ade6",  # 藍
+    "發長球": "#0a84ff",  # 深藍
 }
-# 備用色（未知動作）
+# 備用色（規則式退路：高遠球/吊球/平抽球 偶爾出現時使用）
 _BACKUP_COLORS = ["#636366", "#48484a"]
 
 
@@ -121,12 +119,8 @@ def generate_html_report(event_log: list, video_name: str = "", total_ms: int = 
     if not event_log:
         return '<p style="color:#6e6e73;">尚無分析資料。</p>'
 
-    # 所有已知動作（涵蓋規則式 6 種 + ShuttleSet 12 種）
-    action_names = [
-        "殺球", "高遠球", "吊球", "平抽球", "切球", "挑球",   # 規則式
-        "放小球", "擋小球", "長球", "平球", "推球",            # ML
-        "撲球", "勾球", "發短球", "發長球",                    # ML
-    ]
+    # ShuttleSet 12 種球種（ML 分類器），加上舊名稱退路
+    action_names = list(_ACTION_COLOR.keys()) + ["高遠球", "吊球", "平抽球"]
     valid_events = [e for e in event_log if e.get("action") in action_names]
     all_scores   = [e["dtw_score"] for e in valid_events if e.get("dtw_score") is not None]
     avg_all      = sum(all_scores) / len(all_scores) if all_scores else None
