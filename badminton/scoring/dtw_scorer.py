@@ -126,12 +126,26 @@ def get_advice_from_diffs(joint_diffs: dict, top_n: int = 2) -> list:
 
 
 # 動作中文名稱 → 模板資料夾英文名稱的對應
+# 前 6 種：原規則式系統（YouTube 教學影片，尚未建立）
+# 後 12 種：ShuttleSet 職業選手模板（build_dtw_templates.py 建立）
 _ACTION_FOLDER = {
+    # 規則式系統原有名稱
     "殺球":  "smash",
     "高遠球": "clear",
     "吊球":  "drop",
     "平抽球": "drive",
     "切球":  "cut",
+    "挑球":  "lift",
+    # ML 分類器新增球種（ShuttleSet 命名）
+    "放小球": "net_drop",
+    "擋小球": "block",
+    "長球":  "clear",      # 與高遠球同資料夾（動作相似）
+    "平球":  "drive",      # 與平抽球同資料夾（動作相似）
+    "推球":  "push",
+    "撲球":  "net_kill",
+    "勾球":  "hook",
+    "發短球": "short_serve",
+    "發長球": "long_serve",
 }
 
 

@@ -9,8 +9,12 @@ env/
 # Claude workspace
 .claude/
 
-# 大型資料集（下載後的教學影片）
+# 大型資料集（下載後的影片與訓練資料，不上傳 GitHub）
 datasets/raw/
+datasets/shuttleset/
+
+# ML 模型二進位檔（可從 train_stroke_classifier.py 重新訓練）
+models/stroke_classifier.pkl
 
 # TrackNetV3（含 130MB 模型檔，需手動安裝，詳見 README）
 tracknet/
