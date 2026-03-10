@@ -29,14 +29,20 @@
     #topbar {
       position: sticky; top:0; z-index:200;
       display: flex; align-items:center; justify-content:space-between;
-      padding: 0 28px; height:52px;
-      background: rgba(255,255,255,.82); backdrop-filter: blur(20px) saturate(180%);
-      border-bottom: 1px solid var(--border);
+      padding: 0 28px; height:56px;
+      background: linear-gradient(135deg, rgba(90,180,248,.10), rgba(244,114,182,.10));
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(192,132,252,.25);
     }
-    .tb-left  { display:flex; align-items:center; gap:16px; }
-    .tb-brand { font-size:15px; font-weight:600; color:var(--text); text-decoration:none; }
-    .tb-sep   { color:var(--border); }
-    .tb-title { font-size:15px; color:var(--sub); }
+    .tb-left  { display:flex; align-items:center; gap:10px; }
+    .tb-brand { font-size:13px; font-weight:600; color:#aaa; text-decoration:none; letter-spacing:.3px; }
+    .tb-sep   { color:#ddd; font-size:13px; }
+    .tb-title {
+      font-size:19px; font-weight:800; letter-spacing:-.5px;
+      background: linear-gradient(90deg, #2da4ff 0%, #5ab4f8 22%, #68bdff 38%, #c891ff 55%, #ff76bd 69%, #ff6991 79%, #ff5f5f 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .tb-right { display:flex; align-items:center; gap:10px; }
     #status-dot {
       width:10px; height:10px; border-radius:50%;
