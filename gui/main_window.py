@@ -39,18 +39,20 @@ from gui.analysis_worker import AnalysisWorker
 # ── 各動作計數 Badge 的淡色背景（動作色 15% 混白）────────────────────────────
 # 若需修改顏色，在 report_generator.py 的 _ACTION_COLOR 改主色，這裡改淡色版本
 _BADGE_BG = {
-    "殺球":  "#ffe0e6",   # 緋紅淡粉
-    "挑球":  "#d9f6f5",   # 薄荷藍綠淡
-    "長球":  "#f3e5fa",   # 紫淡
-    "放小球": "#fff3e0",  # 橘黃淡
-    "切球":  "#e1f7e6",   # 草綠淡
-    "平球":  "#fffde0",   # 黃淡
-    "擋小球": "#e0f7ea",  # 青綠淡
-    "推球":  "#e0f4ff",   # 天藍淡
-    "撲球":  "#ffe0ea",   # 桃紅淡
-    "勾球":  "#f5e0ff",   # 淺紫淡
-    "發短球": "#e0f0ff",  # 藍淡
-    "發長球": "#d9e8ff",  # 深藍淡
+    # 與 report_generator._ACTION_COLOR 對應的淡色背景（主色 ~12% 混白）
+    # 每種顏色皆有明顯色調差異，便於 GUI 右側統計區快速辨識
+    "殺球":  "#ffe5e4",   # Red   淡
+    "撲球":  "#ffe0e8",   # Pink  淡
+    "放小球": "#fff3e0",  # Orange淡
+    "平球":  "#fff9d4",   # Yellow淡
+    "切球":  "#e1f7e6",   # Green 淡
+    "挑球":  "#d9f6f5",   # Mint  淡
+    "擋小球": "#ddf4f8",  # Teal  淡
+    "推球":  "#e0f4ff",   # Cyan  淡
+    "長球":  "#d9eeff",   # Blue  淡
+    "發長球": "#e8e8fa",  # Indigo淡
+    "勾球":  "#f3e5fa",   # Purple淡
+    "發短球": "#f3ece4",  # Brown 淡
 }
 
 

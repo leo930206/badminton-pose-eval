@@ -19,18 +19,20 @@ def ms_to_timestamp(ms: int) -> str:
 # 若需修改顏色，在此改即可（同時影響 HTML 報告 badge 和 GUI 擊球橫幅色條）
 # main_window.py 的 _BADGE_BG 是統計區 badge 背景色，也需一起修改
 _ACTION_COLOR = {
-    "殺球":  "#ff2d55",   # 緋紅
-    "挑球":  "#00c7be",   # 薄荷藍綠
-    "長球":  "#af52de",   # 紫
-    "放小球": "#ff9f0a",  # 橘黃
-    "切球":  "#34c759",   # 草綠
-    "平球":  "#ffd60a",   # 黃
-    "擋小球": "#30d158",  # 青綠
-    "推球":  "#64d2ff",   # 天藍
-    "撲球":  "#ff375f",   # 桃紅
-    "勾球":  "#bf5af2",   # 淺紫
-    "發短球": "#32ade6",  # 藍
-    "發長球": "#0a84ff",  # 深藍
+    # Apple 12 系統色（systemRed / Pink / Orange / Yellow / Green / Mint / Teal / Cyan / Blue / Indigo / Purple / Brown）
+    # 每種顏色在色相環上間距足夠，視覺區分明顯
+    "殺球":  "#ff3b30",   # systemRed    — 紅
+    "撲球":  "#ff2d55",   # systemPink   — 玫紅
+    "放小球": "#ff9500",  # systemOrange — 橘
+    "平球":  "#ffcc00",   # systemYellow — 黃
+    "切球":  "#34c759",   # systemGreen  — 綠
+    "挑球":  "#00c7be",   # systemMint   — 薄荷
+    "擋小球": "#30b0c7",  # systemTeal   — 青藍
+    "推球":  "#32ade6",   # systemCyan   — 天藍
+    "長球":  "#007aff",   # systemBlue   — 藍
+    "發長球": "#5856d6",  # systemIndigo — 靛
+    "勾球":  "#af52de",   # systemPurple — 紫
+    "發短球": "#a2845e",  # systemBrown  — 棕
 }
 # 備用色（規則式退路：高遠球/吊球/平抽球 偶爾出現時使用）
 _BACKUP_COLORS = ["#636366", "#48484a"]

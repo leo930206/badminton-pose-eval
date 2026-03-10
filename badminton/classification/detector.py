@@ -36,13 +36,27 @@ class ActionDetector:
             self.config.max_straighten_frames,
         )
 
-        if cooldown_ok and fast_straight and features["wrist_above_head"] and self.prep_active:
-            if features["wrist_vy"] > min_down_speed:
+        # ── 業界標準：速度峰值偵測（Peak Velocity Detection）──────────
+        # 原理：手腕速率局部最大值 = 擊球接觸瞬間（比閾值穿越更精準）
+        # just_peaked=True 表示「上一幀是速率峰值」→ 接觸剛發生
+        just_peaked  = features.get("wrist_speed_just_peaked", False)
+        vy_at_peak   = features.get("wrist_vy_at_peak", features["wrist_vy"])
+
+        # 頭頂球類（殺球/高遠球/吊球）：峰值偵測 + 手腕在頭頂上方 + 準備姿勢確認
+        if cooldown_ok and just_peaked and features["wrist_above_head"] and self.prep_active:
+            if vy_at_peak > min_down_speed:
                 action = "殺球"
-            elif features["wrist_vy"] < -self.config.min_up_speed:
+            elif vy_at_peak < -self.config.min_up_speed:
                 action = "高遠球"
-            elif features["wrist_vy"] > self.config.min_drop_speed:
+            elif vy_at_peak > self.config.min_drop_speed:
                 action = "吊球"
+
+        # 備用：若速率峰值未觸發但 fast_straight 條件已滿足（相容性保底）
+        if action is None and cooldown_ok and fast_straight and features["wrist_above_head"] and self.prep_active:
+            if features["wrist_vy"] > min_down_speed * 1.3:   # 備用門檻較嚴格，減少誤觸
+                action = "殺球"
+            elif features["wrist_vy"] < -self.config.min_up_speed * 1.3:
+                action = "高遠球"
 
         if action is None and cooldown_ok and features["wrist_near_shoulder"]:
             if abs(features["wrist_vx"]) > self.config.min_horizontal_speed and 130 <= features["elbow_angle"] <= 175:
@@ -52,9 +66,13 @@ class ActionDetector:
             if features["wrist_vy"] > self.config.min_drop_speed and 130 <= features["elbow_angle"] <= 160:
                 action = "切球"
 
-        # 挑球：手腕在肩膀以下，快速向上揮拍（把球從前場挑高到後場）
+        # 挑球：手腕在肩膀以下，快速向上揮拍（峰值偵測）
+        if action is None and cooldown_ok and just_peaked and not features["wrist_above_shoulder"]:
+            if vy_at_peak < -self.config.min_lift_speed:
+                action = "挑球"
+        # 備用：挑球閾值穿越（相容性保底）
         if action is None and cooldown_ok and not features["wrist_above_shoulder"]:
-            if features["wrist_vy"] < -self.config.min_lift_speed:
+            if features["wrist_vy"] < -self.config.min_lift_speed * 1.3:
                 action = "挑球"
 
         if action:

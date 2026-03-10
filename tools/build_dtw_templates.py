@@ -61,7 +61,7 @@ _COCO_TO_DTW = {
 
 N_JOINTS  = 17
 SEQ_LEN   = 30
-N_SAMPLES = 5   # 每種球種抽取幾個模板
+N_SAMPLES = 20  # 每種球種抽取幾個模板（更多 → DTW 分類涵蓋更多動作風格）
 
 # COCO 索引：用於正規化計算
 _COCO_LEFT_HIP      = 11
@@ -192,12 +192,12 @@ def build_templates(
                 pose = pose.copy()
                 pose[:, :, 0] = -pose[:, :, 0]
 
-            # 補齊 / 截斷到 SEQ_LEN
-            if T < SEQ_LEN:
-                pad  = np.zeros((SEQ_LEN - T, N_JOINTS, 2), dtype=np.float32)
-                pose = np.concatenate([pad, pose], axis=0)
-            else:
+            # 截斷到 SEQ_LEN（保留最後幾幀，通常含擊球主要動作）
+            # 不再補零：DTW 本身能處理不等長序列，補零反而引入雜訊
+            # （零幀正規化後全為 0，與真實姿態差距大，拉高 DTW 距離）
+            if T > SEQ_LEN:
                 pose = pose[-SEQ_LEN:]
+            # T < SEQ_LEN 時直接用原長度，DTW 對齊不受影響
 
             dtw_frames = _pose_to_dtw_frames(pose)
 

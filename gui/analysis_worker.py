@@ -22,7 +22,7 @@ from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTa
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from badminton.classification.detector import ActionDetector
-from badminton.classification.stroke_classifier import DEFAULT_STROKE_NAMES, StrokeClassifier
+from badminton.classification.stroke_classifier import DEFAULT_STROKE_NAMES
 from badminton.data.logger import log_event
 from badminton.data.sequence_buffer import SequenceBuffer
 from badminton.display.renderer import draw_landmarks, draw_shuttle_trail
@@ -36,7 +36,6 @@ from config import (
     TEMPLATES_DIR, TRACKNET_PATH,
 )
 
-_STROKE_CLF_PATH = os.path.join("models", "stroke_classifier.pkl")
 
 _TRAIL_LEN = 12     # 殘影保留幀數
 
@@ -148,19 +147,13 @@ class AnalysisWorker(QThread):
         action_counts  = {n: 0 for n in DEFAULT_STROKE_NAMES}
         frame_idx      = 0
 
-        # ── ML 分類器（若模型已訓練則啟用）──────────────────────────────
-        stroke_clf: StrokeClassifier | None = None
-        if os.path.exists(_STROKE_CLF_PATH):
-            try:
-                stroke_clf = StrokeClassifier(_STROKE_CLF_PATH)
-                self.status_msg.emit("已載入動作分類器（ML 模型）")
-            except Exception:
-                pass   # 載入失敗時退回規則式分類
+        # ML 分類器已由 DTW 全球種比對取代，不再需要單獨載入
         ball_trail: deque = deque(maxlen=_TRAIL_LEN)
         frame_landmarks: dict = {}     # {frame_idx: [(norm_x, norm_y), ...]}  供回拉時疊加骨架
 
-        # 延遲顯示機制：偵測到擊球後再等 0.3 秒才顯示橫幅 + 暫停
-        _delay_frames   = max(1, int(fps * 0.3))
+        # 峰值偵測已在接觸瞬間後 1 幀觸發，只需極短延遲讓畫面渲染
+        # 0.05s = 1-2 幀 → 橫幅顯示在「擊球後一瞬間」
+        _delay_frames   = max(1, int(fps * 0.05))
         _pending_action: tuple | None = None   # (action, dtw_score, advice, ts_ms, ball_speed, hit_height)
         _pending_frames: int = 0               # 剩餘倒數幀數
 
@@ -195,10 +188,6 @@ class AnalysisWorker(QThread):
 
                 seq_buffer.add(timestamp_ms, landmarks)
 
-                # ML 分類器：每幀更新骨架緩衝區
-                if stroke_clf is not None:
-                    stroke_clf.add_frame(landmarks)
-
                 right_shoulder = landmarks[12]
                 right_elbow    = landmarks[14]
                 right_wrist    = landmarks[16]
@@ -215,46 +204,63 @@ class AnalysisWorker(QThread):
                 # 規則式偵測：決定「何時」有擊球事件
                 current_action, context, max_wrist_y = detector.update(features)
 
-                # ML 分類器：覆寫「打了什麼球」（若模型可用且信心足夠）
-                if current_action and stroke_clf is not None:
-                    clf_action, clf_conf = stroke_clf.classify()
-                    if clf_action is not None and clf_conf >= 0.3:
-                        current_action = clf_action
+                # ── 誤判防線 Gate 1：關節可見度 ──────────────────────────────
+                # 手腕/手肘 visibility < 0.5 → 遮擋或模糊，骨架不可靠
+                if current_action:
+                    if (landmarks[16].visibility < 0.5
+                            or landmarks[14].visibility < 0.5):
+                        current_action = None
+
+                # ── 誤判防線 Gate 2：揮拍幅度 ────────────────────────────────
+                # 近 15 幀手腕移動範圍 < 0.05（歸一化）= 輕微晃動，非真實揮拍
+                if current_action:
+                    if tracker_pose.wrist_range_recent(15) < 0.05:
+                        current_action = None
 
                 if current_action:
-                    action_counts[current_action] = action_counts.get(current_action, 0) + 1
-                    _, advice_rule = grade_action(
-                        current_action, features, context, max_wrist_y, config
-                    )
+                    query_seq = seq_buffer.get_recent(45)
 
-                    query_seq             = seq_buffer.get_recent(45)
-                    dtw_score, _, dtw_adv = dtw_scorer.score(current_action, query_seq)
-                    advice                = dtw_adv if dtw_adv else advice_rule
+                    # DTW 全球種比對：同時做分類（WHAT）和評分（HOW WELL）
+                    # 比對 240 個模板（12 種 × 20 個），找最相似的球種
+                    dtw_action, dtw_score, dtw_adv = dtw_scorer.classify_and_score(query_seq)
+                    if dtw_action is not None:
+                        current_action = dtw_action   # DTW 分類覆蓋規則式判斷
 
-                    hit_height = _calc_hit_height(ball_pos, frame.shape[0])
+                    # ── 誤判防線 Gate 3：DTW 最低分門檻 ──────────────────────
+                    # 分數過低 = 不像任何已知球種的揮拍姿勢 → 誤報，直接捨棄
+                    if dtw_score is not None and dtw_score < 25.0:
+                        current_action = None
 
-                    record = {
-                        "timestamp_ms": features["timestamp_ms"],
-                        "action":       current_action,
-                        "grade":        "DTW" if dtw_score is not None else "Rule",
-                        "context":      context,
-                        "elbow_angle":  round(features["elbow_angle"], 2),
-                        "wrist_speed":  round(features["wrist_speed"], 3),
-                        "wrist_vx":     round(features["wrist_vx"], 3),
-                        "wrist_vy":     round(features["wrist_vy"], 3),
-                        "wrist_y":      round(features["wrist_y"], 3),
-                        "dtw_score":    dtw_score,
-                        "ball_speed":   round(ball_speed, 1),
-                        "hit_height":   round(hit_height, 3),
-                        "advice":       advice,
-                    }
-                    event_log.append(record)
-                    # 不立即發送：等 0.3 秒後才顯示橫幅（讓使用者看到球打出去後再暫停）
-                    if _pending_action is None:   # 若已有待發送動作，不覆蓋
-                        _pending_action = (current_action, dtw_score, advice,
-                                           features["timestamp_ms"],
-                                           float(ball_speed), float(hit_height))
-                        _pending_frames = _delay_frames
+                    if current_action:
+                        _, advice_rule = grade_action(
+                            current_action, features, context, max_wrist_y, config
+                        )
+                        advice = dtw_adv if dtw_adv else advice_rule
+
+                        hit_height = _calc_hit_height(ball_pos, frame.shape[0])
+
+                        record = {
+                            "timestamp_ms": features["timestamp_ms"],
+                            "action":       current_action,
+                            "grade":        "DTW" if dtw_score is not None else "Rule",
+                            "context":      context,
+                            "elbow_angle":  round(features["elbow_angle"], 2),
+                            "wrist_speed":  round(features["wrist_speed"], 3),
+                            "wrist_vx":     round(features["wrist_vx"], 3),
+                            "wrist_vy":     round(features["wrist_vy"], 3),
+                            "wrist_y":      round(features["wrist_y"], 3),
+                            "dtw_score":    dtw_score,
+                            "ball_speed":   round(ball_speed, 1),
+                            "hit_height":   round(hit_height, 3),
+                            "advice":       advice,
+                        }
+                        event_log.append(record)
+                        # 不立即發送：等 0.05 秒後才顯示橫幅（讓使用者看到球打出去後再暫停）
+                        if _pending_action is None:   # 若已有待發送動作，不覆蓋
+                            _pending_action = (current_action, dtw_score, advice,
+                                               features["timestamp_ms"],
+                                               float(ball_speed), float(hit_height))
+                            _pending_frames = _delay_frames
 
                 # 繪製骨架
                 color = (0, 255, 0)

@@ -39,8 +39,11 @@ class MotionTracker:
     def __init__(self, config: Config) -> None:
         self.config = config
         self.wrist_history = deque(maxlen=config.max_history)
-        self.body_history = deque(maxlen=config.max_history)
-        self.prev_ts_ms = None
+        self.body_history  = deque(maxlen=config.max_history)
+        self.prev_ts_ms    = None
+        # 速度峰值偵測（業界標準：wrist velocity peak ≈ 擊球接觸瞬間）
+        self._speed_buf: deque = deque(maxlen=5)   # 最近 5 幀的手腕速率
+        self._vy_buf:    deque = deque(maxlen=5)   # 最近 5 幀的垂直速度
 
     def update(self, timestamp_ms, wrist, shoulder, elbow, nose, left_hip, right_hip):
         dt = None
@@ -68,6 +71,22 @@ class MotionTracker:
             body_speed = math.hypot(bvx, bvy)
 
         angle = calculate_angle(shoulder, elbow, wrist)
+
+        # ── 速度峰值偵測 ─────────────────────────────────────────────
+        # 原理：擊球接觸瞬間 = 手腕合速率的局部最大值（業界 IMU 標準做法移植至視訊）
+        # 實作：[s_{n-2}, s_{n-1}, s_n]，若 s_{n-1} > s_n AND s_{n-1} > s_{n-2} → 峰值剛過
+        self._speed_buf.append(speed)
+        self._vy_buf.append(vy)
+
+        wrist_speed_just_peaked = False
+        wrist_vy_at_peak        = vy   # 峰值那幀的垂直速度（用於判斷方向）
+        if len(self._speed_buf) >= 3:
+            s = list(self._speed_buf)
+            if s[-2] > s[-1] and s[-2] > s[-3]:   # s[-2] 是局部最大值
+                wrist_speed_just_peaked = True
+                wrist_vy_at_peak = list(self._vy_buf)[-2]
+        # ─────────────────────────────────────────────────────────────
+
         return {
             "timestamp_ms": timestamp_ms,
             "wrist_x": wrist.x,
@@ -80,4 +99,17 @@ class MotionTracker:
             "wrist_above_head": wrist.y < nose.y,
             "wrist_above_shoulder": wrist.y < shoulder.y,
             "wrist_near_shoulder": abs(wrist.y - shoulder.y) < self.config.wrist_shoulder_tol,
+            # 速度峰值特徵（用於精準擊球計時）
+            "wrist_speed_just_peaked": wrist_speed_just_peaked,
+            "wrist_vy_at_peak":        wrist_vy_at_peak,
         }
+
+    def wrist_range_recent(self, n: int = 15) -> float:
+        """近 n 幀手腕位置的包圍盒對角線長度（歸一化座標）。
+        太小 → 只是輕微晃動，非真實揮拍。"""
+        if len(self.wrist_history) < 2:
+            return 0.0
+        recent = list(self.wrist_history)[-n:]
+        xs = [p[1] for p in recent]
+        ys = [p[2] for p in recent]
+        return math.hypot(max(xs) - min(xs), max(ys) - min(ys))

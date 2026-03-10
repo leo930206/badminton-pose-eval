@@ -73,7 +73,9 @@ def distance_to_score(distance: float, avg_len: float) -> float:
     if avg_len <= 0:
         return 0.0
     normalized = distance / avg_len
-    score = max(0.0, min(100.0, 100.0 - normalized * 25.0))
+    # 係數 10（原為 25）：hip-torso 正規化座標下，相似動作 normalized≈1~3，
+    # 過嚴的係數 25 導致職業影片也只有 13%；10 更符合實際範圍
+    score = max(0.0, min(100.0, 100.0 - normalized * 10.0))
     return round(score, 1)
 
 
@@ -124,6 +126,22 @@ def get_advice_from_diffs(joint_diffs: dict, top_n: int = 2) -> list:
             advice.append(_JOINT_ADVICE[joint])
     return advice
 
+
+# 12 種球種「資料夾英文名稱」→「正式中文名稱」（唯一對應，供全球種 DTW 分類用）
+_CANONICAL_ACTIONS = {
+    "net_drop":    "放小球",
+    "block":       "擋小球",
+    "smash":       "殺球",
+    "lift":        "挑球",
+    "clear":       "長球",
+    "drive":       "平球",
+    "cut":         "切球",
+    "push":        "推球",
+    "net_kill":    "撲球",
+    "hook":        "勾球",
+    "short_serve": "發短球",
+    "long_serve":  "發長球",
+}
 
 # 動作中文名稱 → 模板資料夾英文名稱的對應
 # 前 6 種：原規則式系統（YouTube 教學影片，尚未建立）
@@ -215,6 +233,44 @@ class DTWScorer:
 
         advice = get_advice_from_diffs(best_diffs)
         return best_score, best_name, advice
+
+    def classify_and_score(self, query_frames: list):
+        """
+        對查詢序列與所有 12 種球種模板做 DTW 比對，
+        回傳「最相似的球種中文名稱、分數、建議」。
+
+        用途：取代 ML 分類器，以動作序列形狀本身判斷「打了什麼球」。
+        不需要額外訓練；只要模板庫有資料即可使用。
+        模板數越多（目前 20/種）→ 涵蓋更多動作風格 → 分類更準。
+        """
+        if not query_frames:
+            return None, None, []
+
+        query_vecs = [frame_to_vector(f["landmarks"]) for f in query_frames]
+
+        best_score   = -1.0
+        best_action  = None
+        best_diffs   = {}
+
+        for folder, action_zh in _CANONICAL_ACTIONS.items():
+            # 直接以英文資料夾名稱載入（_load_templates 找不到中文對應時 fallback 用原字串當 folder）
+            templates = self._load_templates(folder)
+            if not templates:
+                continue
+
+            for tmpl in templates:
+                tmpl_vecs = [frame_to_vector(f["landmarks"]) for f in tmpl["frames"]]
+                dist      = dtw_distance(query_vecs, tmpl_vecs)
+                avg_len   = (len(query_vecs) + len(tmpl_vecs)) / 2.0
+                sc        = distance_to_score(dist, avg_len)
+
+                if sc > best_score:
+                    best_score  = sc
+                    best_action = action_zh
+                    best_diffs  = _joint_differences(query_frames, tmpl["frames"])
+
+        advice = get_advice_from_diffs(best_diffs)
+        return best_action, best_score, advice
 
     def reload(self) -> None:
         """清除快取，重新載入模板（新增模板後呼叫）。"""
