@@ -146,3 +146,11 @@ Pass 2（50–100%）：MediaPipe 骨架分析
 - **CoachAI ShuttleSet**（KDD 2023）：36,492 筆職業選手標注，12 種球種
 - 資料位置：`datasets/shuttleset/`（.gitignore，需自行下載）
 - 用途：建立 DTW 模板庫（hip-torso 正規化，9 關節，每球種取 20 個最佳片段）
+
+---
+
+## 部署（網頁工具）
+
+- **Pages 網址**：`badminton-pose-eval.pages.dev`
+- **自訂網域**：`www.xkuan.com/badminton`（Cloudflare Worker 路由）
+- **後端**：FastAPI on Render（開發中）
