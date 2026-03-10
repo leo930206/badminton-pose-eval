@@ -40,10 +40,10 @@
       border-bottom: 1px solid rgba(192,132,252,.25);
     }
     .tb-left  { display:flex; align-items:center; gap:10px; }
-    .tb-brand { font-size:13px; font-weight:600; color:#aaa; text-decoration:none; letter-spacing:.3px; }
-    .tb-sep   { color:#ddd; font-size:13px; }
+    .tb-brand { font-size:18px; font-weight:600; color:#aaa; text-decoration:none; letter-spacing:.3px; }
+    .tb-sep   { color:#ddd; font-size:18px; }
     .tb-title {
-      font-size:19px; font-weight:800; letter-spacing:-.5px;
+      font-size:27px; font-weight:800; letter-spacing:-.5px;
       background: linear-gradient(90deg, #2da4ff 0%, #5ab4f8 22%, #68bdff 38%, #c891ff 55%, #ff76bd 69%, #ff6991 79%, #ff5f5f 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -54,11 +54,6 @@
       background:var(--gray); transition:background .3s;
     }
     #status-label { font-size:13px; color:var(--sub); }
-    .tb-back {
-      font-size:13px; color:var(--blue); text-decoration:none;
-      display:flex; align-items:center; gap:3px;
-    }
-    .tb-back:hover { text-decoration:underline; }
 
     /* ── Layout ── */
     .page { max-width:900px; margin:0 auto; padding:32px 20px 80px; }
@@ -254,7 +249,6 @@
   <div class="tb-right">
     <div id="status-dot"></div>
     <span id="status-label">確認中...</span>
-    <a class="tb-back" href="https://www.xkuan.com">← 返回</a>
   </div>
 </nav>
 
