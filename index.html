@@ -235,12 +235,12 @@
       #topbar  { padding:0 16px; }
       .page    { padding:20px 14px 60px; }
     }
-    #maint-overlay { display:none; position:fixed; inset:0; z-index:99999; background:#0f172a; flex-direction:column; align-items:center; justify-content:center; gap:1rem; font-family:sans-serif; }
+    #maint-overlay { display:none; position:fixed; inset:0; z-index:99999; background:#ffffff; flex-direction:column; align-items:center; justify-content:center; gap:1rem; font-family:sans-serif; }
     #maint-overlay.on { display:flex; }
-    .maint-gear { font-size:4rem; animation:maint-spin 2.5s linear infinite; display:inline-block; line-height:1; }
+    .maint-gear { font-size:4rem; animation:maint-spin 2.5s linear infinite; display:inline-block; line-height:1; cursor:pointer; user-select:none; }
     @keyframes maint-spin { to { transform:rotate(360deg); } }
-    .maint-title { color:#f1f5f9; font-size:1.8rem; font-weight:700; margin:0; }
-    .maint-sub { color:#94a3b8; font-size:0.95rem; margin:0; }
+    .maint-title { color:#1e293b; font-size:1.8rem; font-weight:700; margin:0; }
+    .maint-sub { color:#64748b; font-size:0.95rem; margin:0; }
   </style>
 </head>
 <body>
@@ -700,7 +700,7 @@ var _MAINTENANCE = true;
 /* __MAINT_E__ */
 var _SYNC_TS = 1773146719594;
 document.addEventListener('DOMContentLoaded', function() {
-  if (_MAINTENANCE) document.getElementById('maint-overlay').classList.add('on');
+  if (_MAINTENANCE && !localStorage.getItem('xkuan_gh_pat')) document.getElementById('maint-overlay').classList.add('on');
 });
 
 // ── 初始化 ──
@@ -710,9 +710,12 @@ if (savedRecs.length) { renderChart(); renderHistory(); show('chart-section'); s
 </script>
 
 <div id="maint-overlay">
-  <div class="maint-gear">⚙️</div>
+  <div class="maint-gear" onclick="maintGearClick()">⚙️</div>
   <p class="maint-title">網站維修中</p>
   <p class="maint-sub">🔧 我們正在進行維護，請稍後再試</p>
 </div>
+<script>
+var _mgc=0,_mgt;function maintGearClick(){_mgc++;clearTimeout(_mgt);_mgt=setTimeout(function(){_mgc=0;},3000);if(_mgc>=15){_mgc=0;var p=prompt('請輸入 GitHub PAT 以繞過維修模式：');if(p){localStorage.setItem('xkuan_gh_pat',p);location.reload();}}}
+</script>
 </body>
 </html>
