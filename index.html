@@ -715,7 +715,7 @@ if (savedRecs.length) { renderChart(); renderHistory(); show('chart-section'); s
   <p class="maint-sub">🔧 我們正在進行維護，請稍後再試</p>
 </div>
 <script>
-var _mgc=0,_mgt;function maintGearClick(){_mgc++;clearTimeout(_mgt);_mgt=setTimeout(function(){_mgc=0;},3000);if(_mgc>=15){_mgc=0;var p=prompt('請輸入 GitHub PAT 以繞過維修模式：');if(p){localStorage.setItem('xkuan_gh_pat',p);location.reload();}}}
+var _mgc=0,_mgt;function maintGearClick(){_mgc++;clearTimeout(_mgt);_mgt=setTimeout(function(){_mgc=0;},3000);if(_mgc>=15){_mgc=0;var pat=localStorage.getItem('xkuan_gh_pat');if(!pat){pat=prompt('請輸入管理員 GitHub PAT：');if(!pat||!pat.trim())return;localStorage.setItem('xkuan_gh_pat',pat.trim());}document.getElementById('maint-overlay').classList.remove('on');}}
 </script>
 </body>
 </html>
